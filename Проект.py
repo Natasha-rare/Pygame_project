@@ -6,7 +6,7 @@ pygame.init()
 pygame.key.set_repeat(200, 70)
 FPS = 50
 WIDTH = 700
-HEIGHT = 700
+HEIGHT = 600
 STEP = 10
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -28,9 +28,6 @@ def load_image(name, color_key=None):
             color_key = image.get_at((0, 0))
         image.set_colorkey(color_key)
     return image
-
-
-
 
 
 def terminate():
@@ -74,14 +71,35 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return  # начинаем игру
+                screen.fill((0, 0, 0))
+                board = Board(16, 16)# начинаем игру
+                board.render(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
+class Board:
+    # создание поля
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.board = [[0] * width for _ in range(height)]
+        # значения по умолчанию
+        self.left = 5
+        self.top = 5
+        self.cell_size = 35
 
+    # настройка внешнего вида
+    def set_view(self, left, top, cell_size):
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
 
-
-
+    def render(self, screen):
+        for i in range(self.height):
+            for j in range(self.width):
+                pygame.draw.rect(screen, (255, 255, 255),
+                                 [self.left + self.cell_size * j, self.top + self.cell_size * i,
+                                                           self.cell_size, self.cell_size], 2)
 
 
 start_screen()
@@ -89,14 +107,10 @@ start_screen()
 running = True
 
 while running:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
-
     screen.fill(pygame.Color(0, 0, 0))
-
     pygame.display.flip()
 
     clock.tick(FPS)
