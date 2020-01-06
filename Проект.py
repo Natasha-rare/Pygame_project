@@ -12,6 +12,21 @@ STEP = 10
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+class Exit(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(all_sprites)
+        self.add(exit_btn)
+        self.image = pygame.Surface((60, 40))
+        self.rect = pygame.Rect(580, 500, 60, 50)
+        font = pygame.font.Font(None, 30)
+        text = font.render('EXIT', 1, (11, 255, 155))
+        pygame.draw.rect(self.image, pygame.Color(11, 255, 155), (0, 0, 60, 40), 5)
+        self.image.blit(text, (7, 10))
+
+    def update(self, *args):
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
+            screen.fill((0, 0, 0))
+            show_levels()
 
 
 class Level(pygame.sprite.Sprite):
@@ -139,12 +154,26 @@ def run_level(level):
     font = pygame.font.Font(None, 30)
     text = font.render(f'Уровень {level}', 1, (255, 255, 100))
     screen.blit(text, (570, 10))
+    exit_btn.draw(screen)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                exit_btn.update(event)
+        pygame.display.flip()
+        clock.tick(FPS)
+
 
 all_sprites = pygame.sprite.Group()
 levels = pygame.sprite.Group()
+exit_btn = pygame.sprite.Group()
 level1 = Level(30, 80, 1)
 level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
+exit = Exit()
+exit_btn.add(exit)
+all_sprites.add(exit)
 all_sprites.add(level1)
 levels.add(level1)
 all_sprites.add(level2)
