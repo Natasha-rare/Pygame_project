@@ -181,7 +181,8 @@ levels.add(level2)
 all_sprites.add(level3)
 levels.add(level3)
 board = Board(16, 16)
-#
+pygame.mixer.music.load('fon.mp3')
+pygame.mixer.music.play()
 running = True
 start_screen()
 
