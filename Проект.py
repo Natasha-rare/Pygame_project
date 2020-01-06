@@ -12,7 +12,25 @@ STEP = 10
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
-all_sprites = pygame.sprite.Group()
+
+
+class Level(pygame.sprite.Sprite):
+    def __init__(self, x, y, n):
+        super().__init__(all_sprites)
+        self.add(levels)
+        self.x = x
+        self.y = y
+        self.image = pygame.Surface((80, 80))
+        self.rect = pygame.Rect(x, y, 80, 80)
+        font = pygame.font.Font(None, 50)
+        text = font.render(str(n), 1, (255, 0, 100))
+        self.number = n
+        pygame.draw.rect(self.image, pygame.Color("blue"), (0, 0, 80, 80), 10)
+        self.image.blit(text, (30, 30))
+
+    def update(self, *args):
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
+            run_level(self.number)
 
 
 def load_image(name, color_key=None):
@@ -72,8 +90,7 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 screen.fill((0, 0, 0))
-                board = Board(16, 16)# начинаем игру
-                board.render(screen)
+                show_levels()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -101,18 +118,42 @@ class Board:
                                  [self.left + self.cell_size * j, self.top + self.cell_size * i,
                                                            self.cell_size, self.cell_size], 2)
 
+def show_levels():
+    levels.draw(screen)
+    font = pygame.font.Font(None, 50)
+    text = font.render('Выберете уровень', 1, (255, 255, 100))
+    screen.blit(text, (30, 10))
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                levels.update(event)
+        pygame.display.flip()
+        clock.tick(FPS)
 
-start_screen()
 
+def run_level(level):
+    screen.fill((0, 0, 0))
+    board.render(screen)
+    font = pygame.font.Font(None, 30)
+    text = font.render(f'Уровень {level}', 1, (255, 255, 100))
+    screen.blit(text, (570, 10))
+
+all_sprites = pygame.sprite.Group()
+levels = pygame.sprite.Group()
+level1 = Level(30, 80, 1)
+level2 = Level(180, 80, 2)
+level3 = Level(330, 80, 3)
+all_sprites.add(level1)
+levels.add(level1)
+all_sprites.add(level2)
+levels.add(level2)
+all_sprites.add(level3)
+levels.add(level3)
+board = Board(16, 16)
+#
 running = True
-
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    screen.fill(pygame.Color(0, 0, 0))
-    pygame.display.flip()
-
-    clock.tick(FPS)
+start_screen()
 
 terminate()
