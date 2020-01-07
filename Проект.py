@@ -139,7 +139,7 @@ class Figure(pygame.sprite.Sprite):
     def update(self, flag, *args):
         if (self.n == 0 and self.rect.y == 410) or \
                 (self.n == 1 and self.rect.y == 330) or \
-                (self.n == 2 and self.rect.y == 370):
+                (self.n == 2 and self.rect.y == 370) or len(pygame.sprite.spritecollide(self, figures, False)) > 1:
             self.go = False
         if self.go:
             if flag == 1:
