@@ -47,8 +47,10 @@ class Level(pygame.sprite.Sprite):
         self.image.blit(text, (30, 30))
 
     def update(self, *args):
+        global count
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             if self.number == 1:
+                count = 0
                 first_run()
 
 
@@ -113,13 +115,15 @@ def start_screen():
         pygame.display.flip()
         clock.tick(FPS)
 
+
 class Figure(pygame.sprite.Sprite):
-    def __init__(self, x, y, n):
+    def __init__(self, x, y, n, c):
         super().__init__(all_sprites)
         # self.add(figures)
         self.x = x
         self.y = y
         self.n = n
+        self.count = c
         self.go = True
         if n == 0:
             self.image = pygame.Surface((80, 80))
@@ -137,17 +141,31 @@ class Figure(pygame.sprite.Sprite):
                                                                            (80, 120), (0, 120)], 0)
 
     def update(self, flag, *args):
-        if (self.n == 0 and self.rect.y == 410) or \
-                (self.n == 1 and self.rect.y == 330) or \
-                (self.n == 2 and self.rect.y == 370) or len(pygame.sprite.spritecollide(self, figures, False)) > 1:
-            self.go = False
+        self.check()
         if self.go:
             if flag == 1:
                 self.rect.y += args[0]
             else:
-                if args and args[0].type == key[pygame.K_RIGHT]:
+                if args[0] == 'R' and self.count == args[1] and self.rect.x <= 330:
                     self.rect.x += 40
+                elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
+                    self.rect.x -= 40
+                elif args[0] == 'D' and self.count == args[1]:
+                    self.check()
+                    if self.go:
+                        if self.n == 0:
+                            self.rect.y += min(40, 410 - self.rect.y)
+                        elif self.n == 1:
+                            self.rect.y += min(40, 330 - self.rect.y)
+                        elif self.n == 2:
+                            self.rect.y += min(40, 370 - self.rect.y, )
 
+
+    def check(self):
+        if (self.n == 0 and self.rect.y == 410) or \
+                (self.n == 1 and self.rect.y == 330) or \
+                (self.n == 2 and self.rect.y == 370) or len(pygame.sprite.spritecollide(self, figures, False)) > 1:
+            self.go = False
 
 
 class Board:
@@ -189,31 +207,22 @@ def show_levels():
         clock.tick(FPS)
 
 
-#def run_level(level):
-    #screen.fill((0, 0, 0))
-    #board.render(screen)
-    #font = pygame.font.Font(None, 30)
-    #text = font.render(f'Уровень {level}', 1, (255, 255, 100))
-    #screen.blit(text, (570, 10))
-    #exit_btn.draw(screen)
-    #while True:
-    #    for event in pygame.event.get():
-    #        if event.type == pygame.QUIT:
-    #            terminate()
-    #        if event.type == pygame.MOUSEBUTTONDOWN:
-    #            exit_btn.update(event)
-    #    if level == 1:
-    #       first_run()
-    #    pygame.display.flip()
-    #    clock.tick(FPS)
 
 
-v = 100
+v = 150
 f = 0
 # первый уровень
+
+
 def first_run():
     board.render(screen)
-    global key, f
+    global key, f, count
+    if count == 0:
+        count += 1
+        figure = Figure(10 + f * 40, 10, f % 3, count)
+        figures.add(figure)
+        all_sprites.add(figure)
+        f = choice(range(11))
     while True:
         key = pygame.key.get_pressed()
         for event in pygame.event.get():
@@ -221,11 +230,17 @@ def first_run():
                 terminate()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 exit_btn.update(event)
-            if event.type == pygame.KEYDOWN:
-                figures.update(0, event)
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_1:
-                figures.add(Figure(10 + f * 40, 10, f % 3))
-                all_sprites.add(Figure(10 + f * 40, 10, f % 3))
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
+                figures.update(0, 'R', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT:
+                figures.update(0, 'L', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
+                figures.update(0, 'D', count)
+            if figure.go is False:
+                count += 1
+                figure = Figure(10 + f * 40, 10, f % 3, count)
+                figures.add(figure)
+                all_sprites.add(figure)
                 f = choice(range(11))
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 30)
@@ -243,11 +258,13 @@ def first_run():
 all_sprites = pygame.sprite.Group()
 levels = pygame.sprite.Group()
 figures = pygame.sprite.Group()
+figure = pygame.sprite.Sprite()
 exit_btn = pygame.sprite.Group()
 level1 = Level(30, 80, 1)
 level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
 exit = Exit()
+
 exit_btn.add(exit)
 all_sprites.add(exit)
 all_sprites.add(level1)
@@ -257,8 +274,10 @@ levels.add(level2)
 all_sprites.add(level3)
 levels.add(level3)
 board = Board(11, 12)
+#MYEVENT = 30
+#pygame.time.set_timer(MYEVENT, 14940)
 pygame.mixer.music.load('fon.mp3')
-pygame.mixer.music.play()
+# pygame.mixer.music.play()
 running = True
 start_screen()
 
