@@ -75,21 +75,22 @@ def terminate():
 
 
 def start_screen():
+    global key
     intro_text = ["ИГРА ТЕТРИС",
                   "Добро пожаловать в игру тетрис!",
                   "Вас ждут позитив и прекрасное времяпровождение",
                   "Цель игры:",
-                  "заполнить как можно больше горизонтальных линий на игровом ",
+                  "Заполнить как можно больше горизонтальных линий на игровом ",
                   "поле, размещая опускающиеся фигуры и не оставляя пустых ",
                   "пространств между ними.",
                   "Правила: ",
-                  "Вы можете передвигать фигурки вправо-влево при помощи",
+                  "Вы можете передвигать фигурки вправо-влево-вниз при помощи",
                   "стелочек на клавиатуре, а так же поворачивать фигуру ",
                   "по часовой стрелке при нажатии на фигуру мышкой",
                   "(со второго уровня)",
-                  "В игре накапливаются ",
-                  "очки за каждый ",
-                  "собранный ряд.",
+                  "В игре накапливаются очки за каждый собранный ряд. ",
+                  "Чтобы начать игры нажмите на экран или любую клавишу.",
+                  "Чтобы выйти из игры нажмите на крестик или на клавишу ESC",
                   "Желаю удачи ^.^"]
 
     fon = pygame.transform.scale(load_image('tetris.jpg'), (WIDTH, HEIGHT))
@@ -106,8 +107,10 @@ def start_screen():
         screen.blit(string_rendered, intro_rect)
 
     while True:
+        key = pygame.key.get_pressed()
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 screen.fill((0, 0, 0))
@@ -117,12 +120,15 @@ def start_screen():
 
 
 class Figure(pygame.sprite.Sprite):
+    global field
     def __init__(self, x, y, n, c):
         super().__init__(all_sprites)
         # self.add(figures)
         self.x = x
         self.y = y
         self.n = n
+        self.lastx = 0
+        self.lasty = 0
         self.count = c
         self.go = True
         if n == 0:
@@ -139,6 +145,7 @@ class Figure(pygame.sprite.Sprite):
             pygame.draw.polygon(self.image, pygame.Color(choice(colors)), [(0, 0),
                                                                            (40, 0), (40, 80), (80, 80),
                                                                            (80, 120), (0, 120)], 0)
+
 
     def update(self, flag, *args):
         self.check()
@@ -158,7 +165,25 @@ class Figure(pygame.sprite.Sprite):
                         elif self.n == 1:
                             self.rect.y += min(40, 330 - self.rect.y)
                         elif self.n == 2:
-                            self.rect.y += min(40, 370 - self.rect.y, )
+                            self.rect.y += min(40, 370 - self.rect.y)
+            for i in range(self.lastx, self.lastx + self.rect.width, 40):
+                for j in range(self.lasty, self.lasty + self.rect.height, 40):
+                    try:
+                        cell_x = (i - 10) // 40
+                        cell_y = (j - 10) // 40
+                        field[cell_x][cell_y] = 0
+                    except:
+                        break
+            self.lastx = self.rect.x
+            self.lasty = self.rect.y
+            for i in range(self.rect.x, self.rect.x + self.rect.width, 40):
+                for j in range(self.rect.y, self.rect.y + self.rect.height, 40):
+                    try:
+                        cell_x = (i - 10) // 40
+                        cell_y = (j - 10) // 40
+                        field[cell_x][cell_y] = 1
+                    except:
+                        break
 
 
     def check(self):
@@ -169,11 +194,12 @@ class Figure(pygame.sprite.Sprite):
 
 
 class Board:
+    global field
     # создание поля
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.board = [[0] * width for _ in range(height)]
+        self.board = field
         # значения по умолчанию
         self.left = 10
         self.top = 10
@@ -192,6 +218,7 @@ class Board:
                                  [self.left + self.cell_size * j, self.top + self.cell_size * i,
                                                            self.cell_size, self.cell_size], 2)
 
+
 def show_levels():
     levels.draw(screen)
     font = pygame.font.Font(None, 50)
@@ -199,7 +226,8 @@ def show_levels():
     screen.blit(text, (30, 10))
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 terminate()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 levels.update(event)
@@ -226,7 +254,8 @@ def first_run():
     while True:
         key = pygame.key.get_pressed()
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 terminate()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 exit_btn.update(event)
@@ -264,7 +293,7 @@ level1 = Level(30, 80, 1)
 level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
 exit = Exit()
-
+field = [[0] * 11 for _ in range(12)]
 exit_btn.add(exit)
 all_sprites.add(exit)
 all_sprites.add(level1)
