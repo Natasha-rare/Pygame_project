@@ -29,7 +29,7 @@ class Exit(pygame.sprite.Sprite):
     def update(self, *args):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             screen.fill((0, 0, 0))
-            show_levels()
+            start_screen()
 
 
 class Level(pygame.sprite.Sprite):
@@ -72,6 +72,7 @@ def load_image(name, color_key=None):
 def terminate():
     pygame.quit()
     sys.exit()
+
 
 
 def start_screen():
@@ -166,6 +167,8 @@ class Figure(pygame.sprite.Sprite):
                             self.rect.y += min(40, 330 - self.rect.y)
                         elif self.n == 2:
                             self.rect.y += min(40, 370 - self.rect.y)
+            # Заполнение поля текущими координатами фигуры
+
             for i in range(self.lastx, self.lastx + self.rect.width, 40):
                 for j in range(self.lasty, self.lasty + self.rect.height, 40):
                     try:
@@ -220,6 +223,8 @@ class Board:
 
 
 def show_levels():
+    name = get_name()
+    screen.fill((0, 0, 0))
     levels.draw(screen)
     font = pygame.font.Font(None, 50)
     text = font.render('Выберете уровень', 1, (255, 255, 100))
@@ -235,6 +240,53 @@ def show_levels():
         clock.tick(FPS)
 
 
+def get_name():
+    screen.fill((30, 30, 30))
+    font = pygame.font.Font(None, 32)
+    clock = pygame.time.Clock()
+    input_box = pygame.Rect(100, 200, 140, 32)
+    color_inactive = pygame.Color('lightskyblue3')
+    color_active = pygame.Color('dodgerblue2')
+    font = pygame.font.Font(None, 50)
+    text = font.render('Введите имя', 1, (255, 255, 100))
+    screen.blit(text, (100, 100))
+    color = color_inactive
+    active = False
+    text = ''
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # If the user clicked on the input_box rect.
+                if input_box.collidepoint(event.pos):
+                    # Toggle the active variable.
+                    active = not active
+                else:
+                    active = False
+                # Change the current color of the input box.
+                color = color_active if active else color_inactive
+            if event.type == pygame.KEYDOWN:
+                if active:
+                    if event.key == pygame.K_RETURN:
+                        return text
+                    elif event.key == pygame.K_BACKSPACE:
+                        text = text[:-1]
+                    else:
+                        text += event.unicode
+
+
+        # Render the current text.
+        txt_surface = font.render(text, True, color)
+        # Resize the box if the text is too long.
+        width = max(200, txt_surface.get_width() + 10)
+        input_box.w = width
+        # Blit the text.
+        screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+        # Blit the input_box rect.
+        pygame.draw.rect(screen, color, input_box, 2)
+        pygame.display.flip()
+        clock.tick(30)
 
 
 v = 150
