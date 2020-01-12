@@ -205,8 +205,9 @@ class Alone(pygame.sprite.Sprite):
 
 SQUARE = [[1, 1], [1, 1]]
 TOWER = [[1, 1, 1, 1]]
-L = [[1, 1, 1], [1]]
+L = [[1], [1, 1, 1]]
 FIGURES = [SQUARE, TOWER, L]
+
 
 class Figure(pygame.sprite.Sprite):
     global field
@@ -242,7 +243,7 @@ class Figure(pygame.sprite.Sprite):
                 for i in range(c):
                     self.figure.sprites()[i].rect.y += delta
                 self.rect.y += delta
-            else:
+            elif flag == 0:
                 if args[0] == 'R' and self.count == args[1] and self.rect.x <= 330:
                     self.rect.x += 40
                     for i in range(c):
@@ -254,17 +255,29 @@ class Figure(pygame.sprite.Sprite):
                 elif args[0] == 'D' and self.count == args[1]:
                     self.check()
                     if self.go:
-                        delta = min(40, 410 - self.rect.y)
+                        delta = min(40, 450 - self.rect.y)
                         for i in range(c):
                             self.figure.sprites()[i].rect.y += delta
                         self.rect.y += delta
+            else:
+                if self.figure.sprites()[-1].rect.y < 449:
+                    delta = min(40, 410 - self.rect.y)
+                    for i in range(c):
+                        self.figure.sprites()[i].rect.y += delta
+                    self.rect.y += delta
+                    self.go = True
             print(self.rect)
 
 
     def check(self):
         print(self.rect.y, self.rect.height)
-        if (self.rect.y + self.rect.height > 489) or len(pygame.sprite.spritecollide(self, figures, False)) > 1:
-            self.go = False
+        try:
+            if (self.rect.y + self.rect.height > 489) or \
+                    len(pygame.sprite.spritecollide(self.figure.sprites()[-1], figures, False)) != 1 or \
+                    len(pygame.sprite.spritecollide(self.figure.sprites()[-2], figures, False)) != 1:
+                self.go = False
+        except IndexError:
+            self.go = True
 
 
 
