@@ -151,7 +151,7 @@ class Deleter(pygame.sprite.Sprite):
             for j in range(w):
                 self.rect.x = j * 40 + 10
                 self.rect.y = i * 40 + 10
-                if pygame.sprite.spritecollideany(self, figures):
+                if pygame.sprite.spritecollideany(self, alone):
                     field[i][j] = 1
                 else:
                     field[i][j] = 0
@@ -168,7 +168,7 @@ class Deleter(pygame.sprite.Sprite):
             for i in range(w):
                 self.rect.x = i * 40 + 10
                 self.rect.y = hor * 40 + 10
-                pygame.sprite.spritecollide(self, figures, True)
+                pygame.sprite.spritecollide(self, alone, True)
                 field[hor][i] = 0
                 updated = True
 
@@ -187,66 +187,83 @@ class Deleter(pygame.sprite.Sprite):
             for i in range(h):
                 self.rect.x = vert * 40 + 10
                 self.rect.y = i * 40 + 10
-                pygame.sprite.spritecollide(self, figures, True)
+                if pygame.sprite.spritecollideany(self, alone):
+                    print(pygame.sprite.spritecollide(self, alone, False))
+                pygame.sprite.spritecollide(self, alone, True)
                 field[i][vert] = 0
                 updated = True
 
 
+class Alone(pygame.sprite.Sprite):
+    def __init__(self, x, y, color):
+        super().__init__(all_sprites)
+        self.add(alone)
+        self.image = pygame.Surface((40, 40))
+        self.rect = pygame.Rect(x, y, 40, 40)
+        pygame.draw.rect(self.image, pygame.Color(color), (0, 0, 80, 80), 0)
+
+
+SQUARE = [[1, 1], [1, 1]]
+TOWER = [[1, 1, 1, 1]]
+L = [[1, 1, 1], [1]]
+FIGURES = [SQUARE, TOWER, L]
 
 class Figure(pygame.sprite.Sprite):
     global field
     def __init__(self, x, y, n, c):
         super().__init__(all_sprites)
         # self.add(figures)
-        self.x = x
-        self.y = y
-        self.n = n
+        #self.x = x
+        #self.y = y
+        self.f = FIGURES[n]
         self.lastx = 0
         self.lasty = 0
         self.count = c
+        clr = choice(colors)
         self.go = True
-        if n == 0:
-            self.image = pygame.Surface((80, 80))
-            self.rect = pygame.Rect(x, y, 80, 80)
-            pygame.draw.polygon(self.image, pygame.Color(choice(colors)), [(0, 0), (80, 0), (80, 80)], 0)
-            pygame.draw.rect(self.image, pygame.Color(choice(colors)), (0, 0, 80, 80), 0)
-        elif n == 1:
-            self.image = pygame.Surface((40, 160))
-            self.rect = pygame.Rect(x, y, 40, 160)
-            pygame.draw.rect(self.image, pygame.Color(choice(colors)), (0, 0, 40, 160), 0)
-        elif n == 2:
-            self.image = pygame.Surface((80, 120))
-            self.rect = pygame.Rect(x, y, 80, 120)
-            pygame.draw.polygon(self.image, pygame.Color(choice(colors)), [(0, 0),
-                                                                           (40, 0), (40, 80), (80, 80),
-                                                                           (80, 120), (0, 120)], 0)
+        self.rect = pygame.Rect(x, y, 40 * len(self.f), 40 * max(list(map(lambda x: len(x), self.f))))
+        print(self.f, clr)
+        self.figure = pygame.sprite.Group()
+        for i in range(len(self.f)):
+            for j in range(len(self.f[i])):
+                self.figure.add(Alone(x + 40 * i, y + 40 * j, clr))
+                alone.add(Alone(x + 40 * i, y + 40 * j, clr))
+        print(self.figure.sprites()[-1].rect)
 
+    def draw(self):
+        self.figure.draw(screen)
 
     def update(self, flag, *args):
         self.check()
+        c = len(self.figure.sprites())
         if self.go:
             if flag == 1:
-                self.rect.y += args[0]
+                delta = min(args[0], 410 - self.rect.y)
+                for i in range(c):
+                    self.figure.sprites()[i].rect.y += delta
+                self.rect.y += delta
             else:
                 if args[0] == 'R' and self.count == args[1] and self.rect.x <= 330:
                     self.rect.x += 40
+                    for i in range(c):
+                        self.figure.sprites()[i].rect.x += 40
                 elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
                     self.rect.x -= 40
+                    for i in range(c):
+                        self.figure.sprites()[i].rect.x -= 40
                 elif args[0] == 'D' and self.count == args[1]:
                     self.check()
                     if self.go:
-                        if self.n == 0:
-                            self.rect.y += min(40, 410 - self.rect.y)
-                        elif self.n == 1:
-                            self.rect.y += min(40, 330 - self.rect.y)
-                        elif self.n == 2:
-                            self.rect.y += min(40, 370 - self.rect.y)
+                        delta = min(40, 410 - self.rect.y)
+                        for i in range(c):
+                            self.figure.sprites()[i].rect.y += delta
+                        self.rect.y += delta
+            print(self.rect)
 
 
     def check(self):
-        if (self.n == 0 and self.rect.y == 410) or \
-                (self.n == 1 and self.rect.y == 330) or \
-                (self.n == 2 and self.rect.y == 370) or len(pygame.sprite.spritecollide(self, figures, False)) > 1:
+        print(self.rect.y, self.rect.height)
+        if (self.rect.y + self.rect.height > 489) or len(pygame.sprite.spritecollide(self, figures, False)) > 1:
             self.go = False
 
 
@@ -347,7 +364,6 @@ def get_name():
 v = 150
 f = 0
 
-
 # первый уровень
 def first_run():
     new_game()
@@ -356,9 +372,8 @@ def first_run():
 
     if count == 0:
         count += 1
-        figure = Figure(10 + f * 40, 10, f % 3, count)
-        figures.add(figure)
-        all_sprites.add(figure)
+        figures.append(Figure(10 + f * 40, 10, f % 3, count))
+        all_sprites.add(Figure(10 + f * 40, 10, f % 3, count))
         f = choice(range(11))
         updated = False
     while True:
@@ -371,21 +386,25 @@ def first_run():
                 exit_btn.update(event)
                 stop_btn.update(event)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
-                figures.update(0, 'R', count)
+                for i in figures:
+                    i.update(0, 'R', count)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT:
-                figures.update(0, 'L', count)
+                for i in figures:
+                    i.update(0, 'L', count)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
-                figures.update(0, 'D', count)
-            if figure.go is False or updated:
+                for i in figures:
+                    i.update(0, 'D', count)
+            if figures[-1].go is False or updated:
                 count += 1
-                figure = Figure(10 + f * 40, 10, f % 3, count)
-                figures.add(figure)
-                all_sprites.add(figure)
+                figures.append(Figure(10 + f * 40, 10, f % 3, count))
+                all_sprites.add(Figure(10 + f * 40, 10, f % 3, count))
                 f = choice(range(11))
                 updated = False
         if not stop:
             y = v / FPS
-            figures.update(1, y)
+            for i in figures:
+                i.update(1, y)
+            #figures.update(1, y)
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 30)
         text = font.render('Уровень 1', 1, (255, 255, 100))
@@ -396,7 +415,9 @@ def first_run():
         screen.blit(text, (570, 80))
         exit_btn.draw(screen)
         stop_btn.draw(screen)
-        figures.draw(screen)
+        # figures.draw(screen)
+        for i in figures:
+            i.draw()
         deleter.update()
         del_.check_field()
         board.render(screen)
@@ -416,8 +437,6 @@ level3 = Level(330, 80, 3)
 def new_game():
     # все фигуры
     figures = pygame.sprite.Group()
-    # текущая фигура
-    figure = pygame.sprite.Sprite()
     # Кнопка выхода
     exit_btn = pygame.sprite.Group()
     deleter = pygame.sprite.Group()
@@ -444,9 +463,8 @@ levels.add(level3)
 #MYEVENT = 30
 #pygame.time.set_timer(MYEVENT, 14940)
 # все фигуры
-figures = pygame.sprite.Group()
-# текущая фигура
-figure = pygame.sprite.Sprite()
+figures = []
+alone = pygame.sprite.Group()
 # Кнопка выхода
 exit_btn = pygame.sprite.Group()
 stop_btn = pygame.sprite.Group()
