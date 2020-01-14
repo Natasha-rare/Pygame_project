@@ -156,6 +156,8 @@ class Deleter(pygame.sprite.Sprite):
                 else:
                     field[i][j] = 0
 
+
+
     def check_field(self, w=11, h=12):
         global points, updated
         hor = -10
@@ -223,13 +225,13 @@ class Figure(pygame.sprite.Sprite):
         clr = choice(colors)
         self.go = True
         self.rect = pygame.Rect(x, y, 40 * len(self.f), 40 * max(list(map(lambda x: len(x), self.f))))
+
         print(self.f, clr)
         self.figure = pygame.sprite.Group()
         for i in range(len(self.f)):
             for j in range(len(self.f[i])):
                 self.figure.add(Alone(x + 40 * i, y + 40 * j, clr))
-                alone.add(Alone(x + 40 * i, y + 40 * j, clr))
-        print(self.figure.sprites()[-1].rect)
+                # alone.add(Alone(x + 40 * i, y + 40 * j, clr))
 
     def draw(self):
         self.figure.draw(screen)
@@ -239,46 +241,35 @@ class Figure(pygame.sprite.Sprite):
         c = len(self.figure.sprites())
         if self.go:
             if flag == 1:
-                delta = min(args[0], 410 - self.rect.y, self.delta)
+                delta = min(args[0], self.delta, 410 - self.rect.y)
                 for i in range(c):
                     self.figure.sprites()[i].rect.y += delta
                 self.rect.y += delta
             elif flag == 0:
-                if len(pygame.sprite.spritecollide(self, figures, False)) == 1:
-                    if args[0] == 'R' and self.count == args[1] and self.rect.x <= 330:
-                        self.rect.x += 40
-                        for i in range(c):
-                            self.figure.sprites()[i].rect.x += 40
-                    elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
-                        self.rect.x -= 40
-                        for i in range(c):
-                            self.figure.sprites()[i].rect.x -= 40
-                    elif args[0] == 'D' and self.count == args[1]:
-                        #self.check()
-                        #if self.go:
-                        for i in range(c):
-                            self.figure.sprites()[i].rect.y += self.delta
-                        self.rect.y += self.delta
+                if args[0] == 'R' and self.count == args[1] and self.rect.x <= (410 - self.rect.width):
+                    self.rect.x += 40
+                    for i in range(c):
+                        self.figure.sprites()[i].rect.x += 40
+                elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
+                    self.rect.x -= 40
+                    for i in range(c):
+                        self.figure.sprites()[i].rect.x -= 40
+                elif args[0] == 'D' and self.count == args[1]:
+                    #self.check()
+                    #if self.go:
+                    for i in range(c):
+                        self.figure.sprites()[i].rect.y += self.delta
+                    self.rect.y += self.delta
 
-            else:
-                self.check()
-                ##if self.figure.sprites()[-1].rect.y < 449:
-                delta = min(40, 410 - self.rect.y)
-                for i in range(c):
-                    self.figure.sprites()[i].rect.y += self.delta
-                self.rect.y += self.delta
-                self.go = True
 
 
     def check(self):
         self.delta = 0
         if self.go:
             for i in range(self.rect.y, 490 - self.rect.height):
-                print(pygame.sprite.spritecollide(self, figures, False))
-                if len(pygame.sprite.spritecollide(self, figures, False)) != 1:
-                    print(pygame.sprite.spritecollide(self, figures, False)[0].rect.y)
+                print(pygame.sprite.spritecollide(self, figures, False)[0].rect.y, self.rect.y + self.rect.height)
+                if len(pygame.sprite.spritecollide(self, figures, False)) != 1 and i == pygame.sprite.spritecollide(self, figures, False)[-1].rect.y:
                     self.delta = pygame.sprite.spritecollide(self, figures, False)[0].rect.y - self.rect.y - self.rect.height
-                    print(self.delta)
                     break
                 else:
                     self.delta = i
@@ -286,10 +277,8 @@ class Figure(pygame.sprite.Sprite):
                 self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
             elif self.delta == -2:
                 self.delta = 0
-            print(self.delta)
             if pygame.sprite.spritecollideany(self, border) or self.delta == 0:
                 self.go = False
-        print(self.go)
 
 
 class Border(pygame.sprite.Sprite):
@@ -436,6 +425,8 @@ def first_run():
                 f = choice(range(11))
                 updated = False
             y = v / FPS
+            for i in field:
+                print(i)
             for i in figures:
                 i.update(1, y)
             #figures.update(1, y)
