@@ -85,6 +85,12 @@ class Level(pygame.sprite.Sprite):
             if self.number == 1:
                 count = 0
                 first_run()
+            elif self.number == 2:
+                count = 0
+                second_run()
+            elif self.number == 3:
+                count = 0
+                third_run()
 
 
 def load_image(name, color_key=None):
@@ -223,9 +229,10 @@ class Alone(pygame.sprite.Sprite):
 
 
 SQUARE = [[1, 1], [1, 1]]
-TOWER = [[1, 1, 1, 1]]
-L = [[1], [1, 1, 1]]
-FIGURES = [SQUARE, TOWER, L]
+TOWER = [[[1, 1, 1, 1]], [[1], [1], [1], [1]]]
+THIRD = [[[1, 1], [0, 1, 1]], [[0, 1], [1, 1], [1]]]
+L = [[[1], [1, 1, 1]], [[0, 1], [0, 1], [1, 1]], [[1, 1], [1, 0], [1, 0]], [[1, 1, 1], [0, 0, 1]]]
+FIGURES = [SQUARE, TOWER, L, THIRD]
 
 
 class Figure(pygame.sprite.Sprite):
@@ -236,18 +243,21 @@ class Figure(pygame.sprite.Sprite):
         #self.x = x
         #self.y = y
         self.f = FIGURES[n]
-        self.lastx = 0
-        self.lasty = 0
+        if self.f == L:
+            self.f = L[0]
+        elif self.f == TOWER:
+            self.f = TOWER[0]
+        elif self.f == THIRD:
+            self.f = THIRD[0]
         self.count = c
-        clr = choice(colors)
+        self.clr = choice(colors)
         self.go = True
         self.rect = pygame.Rect(x, y, 40 * len(self.f), 40 * max(list(map(lambda x: len(x), self.f))))
-
-        print(self.f, clr)
         self.figure = pygame.sprite.Group()
         for i in range(len(self.f)):
             for j in range(len(self.f[i])):
-                self.figure.add(Alone(x + 40 * i, y + 40 * j, clr))
+                if self.f[i][j] == 1:
+                    self.figure.add(Alone(x + 40 * i, y + 40 * j, self.clr))
                 # alone.add(Alone(x + 40 * i, y + 40 * j, clr))
 
     def draw(self):
@@ -271,13 +281,31 @@ class Figure(pygame.sprite.Sprite):
                     self.rect.x -= 40
                     for i in range(c):
                         self.figure.sprites()[i].rect.x -= 40
+                elif args[0] == 'U' and self.count == args[1] and self.rect.x >= 40:
+                    if self.f not in SQUARE:
+                        for i in range(4):
+                            alone.remove(alone.sprites()[:-1])
+                        if self.f in L:
+                            if L.index(self.f) == 3:
+                                self.f = L[0]
+                            else:
+                                self.f = L[L.index(self.f) + 1]
+                        elif self.f in TOWER:
+                            self.f = TOWER[0] if TOWER.index(self.f) == 1 else TOWER[1]
+                        elif self.f in THIRD:
+                            self.f = THIRD[0] if THIRD.index(self.f) == 1 else THIRD[1]
+                        self.rect = pygame.Rect(self.rect.x, self.rect.y, 40 * len(self.f), 40 * max(list(map(lambda x: len(x), self.f))))
+                        self.figure = pygame.sprite.Group()
+                        for i in range(len(self.f)):
+                            for j in range(len(self.f[i])):
+                                if self.f[i][j] == 1:
+                                    self.figure.add(Alone(self.rect.x + 40 * i, self.rect.y + 40 * j, self.clr))
                 elif args[0] == 'D' and self.count == args[1]:
                     #self.check()
                     #if self.go:
                     for i in range(c):
                         self.figure.sprites()[i].rect.y += self.delta
                     self.rect.y += self.delta
-
 
 
     def check(self):
@@ -294,7 +322,7 @@ class Figure(pygame.sprite.Sprite):
                 self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
             elif self.delta == -2:
                 self.delta = 0
-            if pygame.sprite.spritecollideany(self, border) or self.delta == 0:
+            if pygame.sprite.spritecollideany(self, border) or len(pygame.sprite.spritecollide(self, figures, False)) != 1:
                 self.go = False
 
 
@@ -368,7 +396,6 @@ class Results(pygame.sprite.Sprite):
                 screen.blit(text, (155, (1 + i) * 40 + 15))
                 text = font.render(f'{elem[1]}', 1, (255, 255, 100))
                 screen.blit(text, (255, (1 + i) * 40 + 15))
-
 
 
 def show_levels():
@@ -505,6 +532,9 @@ def first_run():
         # figures.draw(screen)
         for i in figures:
             i.draw()
+        if points == 300:
+            count = 0
+            congratulate(1)
         deleter.update()
         del_.check_field()
         board.render(screen)
@@ -512,17 +542,233 @@ def first_run():
         clock.tick(FPS)
 
 
+def second_run():
+    new_game()
+    global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
+    board.render(screen)
+    if count == 0:
+        count += 1
+        figures.append(Figure(10 + f * 40, 10, f % 3, count))
+        all_sprites.add(Figure(10 + f * 40, 10, f % 3, count))
+        f = choice(range(11))
+        updated = False
+    while True:
+        key = pygame.key.get_pressed()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                exit_btn.update(event)
+                stop_btn.update(event)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
+                for i in figures:
+                    i.update(0, 'R', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT:
+                for i in figures:
+                    i.update(0, 'L', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
+                for i in figures:
+                    i.update(0, 'D', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
+                for i in figures:
+                    i.update(0, 'U', count)
+        if not stop:
+            if figures[-1].go is False or updated:
+                count += 1
+                figures.append(Figure(10 + f * 40, 10, f % 3, count))
+                all_sprites.add(Figure(10 + f * 40, 10, f % 3, count))
+                f = choice(range(11))
+                updated = False
+            y = (v * 2) / FPS
+            for i in field:
+                print(i)
+            for i in figures:
+                i.update(1, y)
+            #figures.update(1, y)
+        screen.fill((0, 0, 0))
+        font = pygame.font.Font(None, 30)
+        text = font.render('Уровень 2', 1, (255, 255, 100))
+        screen.blit(text, (570, 10))
+        text = font.render('Очки:', 1, (255, 255, 100))
+        screen.blit(text, (570, 40))
+        text = font.render(f'{points}', 1, (255, 255, 100))
+        screen.blit(text, (570, 80))
+        border.draw(screen)
+        exit_btn.draw(screen)
+        stop_btn.draw(screen)
+        # figures.draw(screen)
+        for i in figures:
+            i.draw()
+        if points == 600:
+            count = 0
+            congratulate(2)
+        deleter.update()
+        del_.check_field()
+        board.render(screen)
+        pygame.display.flip()
+        clock.tick(FPS + 50)
+
+def third_run():
+    new_game()
+    global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
+    board.render(screen)
+    if count == 0:
+        count += 1
+        m = choice(range(4))
+        figures.append(Figure(10 + f * 40, 10, m, count))
+        all_sprites.add(Figure(10 + f * 40, 10, m, count))
+        f = choice(range(11))
+        updated = False
+    while True:
+        key = pygame.key.get_pressed()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                exit_btn.update(event)
+                stop_btn.update(event)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
+                for i in figures:
+                    i.update(0, 'R', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT:
+                for i in figures:
+                    i.update(0, 'L', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
+                for i in figures:
+                    i.update(0, 'D', count)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
+                for i in figures:
+                    i.update(0, 'U', count)
+
+        if not stop:
+            if figures[-1].go is False or updated:
+                count += 1
+                m = choice(range(4))
+                figures.append(Figure(10 + f * 40, 10, m, count))
+                all_sprites.add(Figure(10 + f * 40, 10, m, count))
+                f = choice(range(11))
+                updated = False
+            y = (v * 3) / FPS
+            for i in field:
+                print(i)
+            for i in figures:
+                i.update(1, y)
+            # figures.update(1, y)
+        screen.fill((0, 0, 0))
+        font = pygame.font.Font(None, 30)
+        text = font.render('Уровень 3', 1, (255, 255, 100))
+        screen.blit(text, (570, 10))
+        text = font.render('Очки:', 1, (255, 255, 100))
+        screen.blit(text, (570, 40))
+        text = font.render(f'{points}', 1, (255, 255, 100))
+        screen.blit(text, (570, 80))
+        border.draw(screen)
+        exit_btn.draw(screen)
+        stop_btn.draw(screen)
+        # figures.draw(screen)
+        for i in figures:
+            i.draw()
+        if points == 900:
+            congratulate(10)
+        deleter.update()
+        del_.check_field()
+        board.render(screen)
+        pygame.display.flip()
+        clock.tick(FPS + 70)
+
+
+screen_rect = (0, 0, WIDTH, HEIGHT)
+
+class Particle(pygame.sprite.Sprite):
+    # сгенерируем частицы разного размера
+    fire = [load_image("star.png")]
+    for scale in (5, 10, 20):
+        fire.append(pygame.transform.scale(fire[0], (scale, scale)))
+
+    def __init__(self, pos, dx, dy):
+        super().__init__(all_sprites)
+        self.add(stars)
+        self.image = choice(self.fire)
+        self.rect = self.image.get_rect()
+
+        # у каждой частицы своя скорость — это вектор
+        self.velocity = [dx, dy]
+        # и свои координаты
+        self.rect.x, self.rect.y = pos
+
+        # гравитация будет одинаковой (значение константы)
+        self.gravity = 1
+
+    def update(self):
+        # применяем гравитационный эффект:
+        # движение с ускорением под действием гравитации
+        self.velocity[1] += self.gravity
+        # перемещаем частицу
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        # убиваем, если частица ушла за экран
+        if not self.rect.colliderect(screen_rect):
+            self.kill()
+
+
+def create_particles(position):
+    # количество создаваемых частиц
+    particle_count = 20
+    # возможные скорости
+    numbers = range(-5, 6)
+    for _ in range(particle_count):
+        Particle(position, choice(numbers), choice(numbers))
+
+
+
+def congratulate(n):
+    screen.fill((0, 0, 0))
+    running = True
+
+    create_particles((100, 100))
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # создаём частицы по щелчку мыши
+                create_particles(pygame.mouse.get_pos())
+            if event.type == pygame.KEYDOWN:
+                if n == 2:
+                    third_run()
+                elif n == 1:
+                    second_run()
+                else:
+                    start_screen()
+        stars.update()
+        screen.fill((0, 0, 0))
+        font = pygame.font.Font(None, 50)
+        if n == 10:
+            t = font.render('Поздравляем с победой!', 1, (255, 255, 100))
+        else:
+            t = font.render(f'Вы прошли уровень {n}', 1, (255, 255, 100))
+        screen.blit(t, (100, 100))
+        font = pygame.font.Font(None, 20)
+        t = font.render('Нажмите на клавиатуру для продолжения', 1, (255, 255, 100))
+        screen.blit(t, (100, 400))
+        stars.draw(screen)
+        pygame.display.flip()
+        clock.tick(50)
+
 # все спрайты
 all_sprites = pygame.sprite.Group()
 # все уровни
 levels = pygame.sprite.Group()
-
+stars = pygame.sprite.Group()
 # Создание уровней
 level1 = Level(30, 80, 1)
 level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
 def new_game():
-    global points, field, figures
+    global points, field, figures, stop
+    stop = False
     # все фигуры
     figures = []
     # Кнопка выхода
@@ -531,7 +777,7 @@ def new_game():
     exit = Exit()
     exit_btn.add(exit)
     field = [[0] * 11 for _ in range(12)]
-    points = 0
+    # points = 0
     del_ = Deleter()
     deleter.add(del_)
     all_sprites.add(exit)
@@ -566,7 +812,7 @@ exit_btn.add(exit)
 stop = Pause()
 stop_btn.add(stop)
 stop = False
-field = [[0] * 11 for _ in range(12)]
+field = [[0] * 12 for _ in range(11)]
 board = Board(11, 12)
 del_ = Deleter()
 deleter.add(del_)
