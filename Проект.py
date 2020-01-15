@@ -1,5 +1,5 @@
-import os
 import sys
+import csv
 import pygame
 from random import choice
 
@@ -14,6 +14,20 @@ colors = ['blue', 'red', 'green', 'yellow', 'orange']
 points = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+results_list = []
+def results():
+    global name
+    with open('results.csv', encoding='utf8') as csvfile:
+        results_list = list(csv.reader(csvfile, delimiter=',', quotechar='"'))
+
+    results_list.append([name, points])
+    with open('results.csv', 'w') as csvfile:
+        writer = csv.writer(
+            csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        for i in range(len(results_list)):
+            writer.writerow(results_list[i])
+
+
 
 class Exit(pygame.sprite.Sprite):
     def __init__(self):
@@ -29,6 +43,7 @@ class Exit(pygame.sprite.Sprite):
     def update(self, *args):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             screen.fill((0, 0, 0))
+            results()
             start_screen()
 
 
@@ -126,6 +141,7 @@ def start_screen():
         screen.blit(string_rendered, intro_rect)
 
     while True:
+        global name
         key = pygame.key.get_pressed()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or \
@@ -133,6 +149,7 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 screen.fill((0, 0, 0))
+                name = get_name()
                 show_levels()
         pygame.display.flip()
         clock.tick(FPS)
@@ -294,14 +311,14 @@ class Border(pygame.sprite.Sprite):
 class Board:
     global field, points
     # создание поля
-    def __init__(self, width, height):
+    def __init__(self, width, height, size=40):
         self.width = width
         self.height = height
         self.board = field
         # значения по умолчанию
         self.left = 10
         self.top = 10
-        self.cell_size = 40
+        self.cell_size = size
 
     # настройка внешнего вида
     def set_view(self, left, top, cell_size):
@@ -317,8 +334,45 @@ class Board:
                                                            self.cell_size, self.cell_size], 2)
 
 
+class Results(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(all_sprites)
+        self.image = pygame.Surface((100, 50))
+        self.rect = pygame.Rect(580, 400, 100, 50)
+        font = pygame.font.Font(None, 28)
+        text = font.render('Results', 1, (255, 255, 155))
+        pygame.draw.rect(self.image, pygame.Color(11, 255, 155), (0, 0, 100, 50), 5)
+        self.image.blit(text, (10, 15))
+
+    def update(self, *args):
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
+            screen.fill((0, 0, 0))
+            pygame.draw.rect(screen, (255, 255, 255), [50, 30, 100, 40], 2)
+            pygame.draw.rect(screen, (255, 255, 255), [150, 30, 100, 40], 2)
+            pygame.draw.rect(screen, (255, 255, 255), [250, 30, 100, 40], 2)
+            font = pygame.font.Font(None, 20)
+            text = font.render('имя', 1, (255, 255, 100))
+            screen.blit(text, (155, 35))
+            text = font.render('баллы', 1, (255, 255, 100))
+            screen.blit(text, (255, 35))
+            with open('results.csv', encoding='utf8') as csvfile:
+                results_list = list(csv.reader(csvfile, delimiter=',', quotechar='"'))
+            for i, elem in enumerate(results_list):
+                pygame.draw.rect(screen, (255, 255, 255), [50, (i + 1) * 40 + 30, 100, 40], 2)
+                pygame.draw.rect(screen, (255, 255, 255), [150, (i + 1) * 40 + 30, 100, 40], 2)
+                pygame.draw.rect(screen, (255, 255, 255), [250, (i + 1) * 40 + 30, 100, 40], 2)
+
+                text = font.render(f'{i}', 1, (255, 255, 100))
+                screen.blit(text, (55, (1 + i) * 40 + 15))
+                text = font.render(f'{elem[0]}', 1, (255, 255, 100))
+                screen.blit(text, (155, (1 + i) * 40 + 15))
+                text = font.render(f'{elem[1]}', 1, (255, 255, 100))
+                screen.blit(text, (255, (1 + i) * 40 + 15))
+
+
+
 def show_levels():
-    # name = get_name()
+    print(name)
     screen.fill((0, 0, 0))
     levels.draw(screen)
     font = pygame.font.Font(None, 50)
@@ -330,24 +384,24 @@ def show_levels():
                     (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 terminate()
             if event.type == pygame.MOUSEBUTTONDOWN:
+                exit_btn.update(event)
                 levels.update(event)
+                res.update(event)
+        exit_btn.draw(screen)
+        res.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
 
 def get_name():
     screen.fill((30, 30, 30))
+    text = ''
     font = pygame.font.Font(None, 32)
-    clock = pygame.time.Clock()
     input_box = pygame.Rect(100, 200, 140, 32)
     color_inactive = pygame.Color('lightskyblue3')
     color_active = pygame.Color('dodgerblue2')
-    font = pygame.font.Font(None, 50)
-    text = font.render('Введите имя', 1, (255, 255, 100))
-    screen.blit(text, (100, 100))
-    color = color_inactive
     active = False
-    text = ''
+    color = color_inactive
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -369,6 +423,12 @@ def get_name():
                         text = text[:-1]
                     else:
                         text += event.unicode
+        screen.fill((30, 30, 30))
+
+        font = pygame.font.Font(None, 50)
+        t = font.render('Введите имя', 1, (255, 255, 100))
+        screen.blit(t, (100, 100))
+
 
         # Render the current text.
         txt_surface = font.render(text, True, color)
@@ -381,6 +441,7 @@ def get_name():
         pygame.draw.rect(screen, color, input_box, 2)
         pygame.display.flip()
         clock.tick(30)
+
 
 
 v = 150
@@ -461,15 +522,16 @@ level1 = Level(30, 80, 1)
 level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
 def new_game():
+    global points, field, figures
     # все фигуры
-    figures = pygame.sprite.Group()
+    figures = []
     # Кнопка выхода
     exit_btn = pygame.sprite.Group()
     deleter = pygame.sprite.Group()
     exit = Exit()
     exit_btn.add(exit)
     field = [[0] * 11 for _ in range(12)]
-    board = Board(11, 12)
+    points = 0
     del_ = Deleter()
     deleter.add(del_)
     all_sprites.add(exit)
@@ -485,7 +547,7 @@ levels.add(level2)
 
 all_sprites.add(level3)
 levels.add(level3)
-
+name = ''
 #MYEVENT = 30
 #pygame.time.set_timer(MYEVENT, 14940)
 # все фигуры
@@ -496,6 +558,8 @@ exit_btn = pygame.sprite.Group()
 stop_btn = pygame.sprite.Group()
 deleter = pygame.sprite.Group()
 border = pygame.sprite.Group()
+res = pygame.sprite.Group()
+res.add(Results())
 border.add(Border())
 exit = Exit()
 exit_btn.add(exit)
