@@ -277,16 +277,18 @@ class Figure(pygame.sprite.Sprite):
                 if field[(i.rect.y - 10) // 40][(i.rect.x - 10) // 40] == 0:
                     self.figure.remove(i)
             c = len(self.figure.sprites())
-            self.rect.x = self.figure.sprites()[0].rect.x
-            self.rect.y = self.figure.sprites()[0].rect.y
-            self.check()
-            self.rect.y += self.delta
-            for i in range(c - 1, -1, -1):
-                x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
-                field[y1][x1] = 0
-                self.figure.sprites()[i].rect.y += self.delta
-                y2 = (self.figure.sprites()[i].rect.y - 10) // 40
-                field[y2][x1] = 1
+            if c > 0:
+                y = max(i.rect.y for i in self.figure.sprites())
+                self.rect.x = self.figure.sprites()[0].rect.x
+                self.rect.y = self.figure.sprites()[0].rect.y
+                self.rect.height = y - self.rect.y + 40
+                self.width = max(i.rect.x for i in self.figure.sprites()) - self.rect.x + 40
+                for i in range(c - 1, -1, -1):
+                    x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
+                    field[y1][x1] = 0
+                    self.figure.sprites()[i].rect.y += 40
+                    y2 = (self.figure.sprites()[i].rect.y - 10) // 40
+                    field[y2][x1] = 1
         if self.go:
             if flag == 1:
                 delta = min(args[0], 410 - self.rect.y)
@@ -315,7 +317,7 @@ class Figure(pygame.sprite.Sprite):
                         self.rect.x += 40
                 elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
                     l = True
-                    for i in range(y, y + self.rect.height // 40):
+                    for i in range(y - 1, y + self.rect.height // 40):
                         if field[i][x - 1] == 1:
                             l = False
                     if l:
@@ -332,6 +334,10 @@ class Figure(pygame.sprite.Sprite):
                     if self.f not in SQUARE:
                         for i in range(4):
                             alone.remove(alone.sprites()[:-1])
+                        for i in range(len(self.f)):
+                            for j in range(len(self.f[i])):
+                                field[y + j][x + i] = 0
+
                         if self.f in L:
                             if L.index(self.f) == 3:
                                 self.f = L[0]
@@ -341,13 +347,15 @@ class Figure(pygame.sprite.Sprite):
                             self.f = TOWER[0] if TOWER.index(self.f) == 1 else TOWER[1]
                         elif self.f in THIRD:
                             self.f = THIRD[0] if THIRD.index(self.f) == 1 else THIRD[1]
-                        self.rect = pygame.Rect(self.rect.x, self.rect.y, 40 * len(self.f),
-                                                40 * max(list(map(lambda x: len(x), self.f))))
-                        self.figure = pygame.sprite.Group()
-                        for i in range(len(self.f)):
-                            for j in range(len(self.f[i])):
-                                if self.f[i][j] == 1:
-                                    self.figure.add(Alone(self.rect.x + 40 * i, self.rect.y + 40 * j, self.clr))
+                        if max([len(x) for x in self.f]) * 40 + self.rect.x < 410:
+                            self.rect = pygame.Rect(self.rect.x, self.rect.y, 40 * len(self.f),
+                                                    40 * max(list(map(lambda x: len(x), self.f))))
+                            self.figure = pygame.sprite.Group()
+                            for i in range(len(self.f)):
+                                for j in range(len(self.f[i])):
+                                    if self.f[i][j] == 1:
+                                        field[y + j][x + i] = 1
+                                        self.figure.add(Alone(self.rect.x + 40 * i, self.rect.y + 40 * j, self.clr))
                 elif args[0] == 'D' and self.count == args[1]:  # and field[x][y + self.rect.height // 40 + 1] == 0:
                     # self.check()
                     # if self.go:
@@ -370,7 +378,8 @@ class Figure(pygame.sprite.Sprite):
             else:
                 break
         self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
-        if self.delta == 0 or pygame.sprite.spritecollideany(self, border):
+        if self.delta == 0 or pygame.sprite.spritecollideany(self, border) or \
+                len(pygame.sprite.spritecollide(self, figures, False)) > 1:
             self.go = False
 
 
@@ -478,7 +487,6 @@ def get_name():
         clock.tick(30)
 
 
-
 def show_levels():
     global name
     screen.fill((0, 0, 0))
@@ -525,9 +533,11 @@ def field_check():
         line = field[i]
         if line == [1] * 11:
             field[i] = [0] * 11
-            #deleter.update(i)
             updated = True
             points += 100
+            print('breeek')
+            for i in field:
+                print(i)
     if field[0].count(1) >= 9 or field[1].count(1) >= 9:
         congratulate(-1)
 
@@ -825,9 +835,11 @@ def congratulate(n):
                     results_list[i] = name, points
         elif n == 10:
             t = font.render('Поздравляем с победой!', 1, (255, 255, 100))
+            screen.blit(t, (100, 100))
         else:
             t = font.render(f'Вы прошли уровень {n}', 1, (255, 255, 100))
-        screen.blit(t, (100, 100))
+            screen.blit(t, (100, 100))
+
         font = pygame.font.Font(None, 20)
         t = font.render('Нажмите на клавиатуру для продолжения', 1, (255, 255, 100))
         screen.blit(t, (100, 400))
