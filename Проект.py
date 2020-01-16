@@ -259,9 +259,13 @@ class Figure(pygame.sprite.Sprite):
         self.figure = pygame.sprite.Group()
         for i in range(len(self.f)):
             for j in range(len(self.f[i])):
-                if self.f[i][j] == 1:
-                    field[(y - 10) // 40 + j][(x - 10) // 40 + i] = 1
-                    self.figure.add(Alone(x + 40 * i, y + 40 * j, self.clr))
+                try:
+                    if self.f[i][j] == 1:
+                        field[(y - 10) // 40 + j][(x - 10) // 40 + i] = 1
+                        self.figure.add(Alone(x + 40 * i, y + 40 * j, self.clr))
+                except IndexError:
+                    print('adadadaa')
+                    break
                 # alone.add(Alone(x + 40 * i, y + 40 * j, clr))
 
     def draw(self):
@@ -274,21 +278,20 @@ class Figure(pygame.sprite.Sprite):
         y = (self.rect.y - 10) // 40
         if flag == 4:
             for i in self.figure.sprites():
-                if field[(i.rect.y - 10) // 40][(i.rect.x - 10) // 40] == 0:
+                if i.rect.y == 11:
                     self.figure.remove(i)
             c = len(self.figure.sprites())
             if c > 0:
-                y = max(i.rect.y for i in self.figure.sprites())
-                self.rect.x = self.figure.sprites()[0].rect.x
-                self.rect.y = self.figure.sprites()[0].rect.y
-                self.rect.height = y - self.rect.y + 40
-                self.width = max(i.rect.x for i in self.figure.sprites()) - self.rect.x + 40
                 for i in range(c - 1, -1, -1):
                     x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
                     field[y1][x1] = 0
                     self.figure.sprites()[i].rect.y += 40
                     y2 = (self.figure.sprites()[i].rect.y - 10) // 40
-                    field[y2][x1] = 1
+                    if y2 > 11:
+                        self.figure.remove(self.figure.sprites()[i])
+                    else:
+                        field[y2][x1] = 1
+                self.rect.y += 40
         if self.go:
             if flag == 1:
                 delta = min(args[0], 410 - self.rect.y)
@@ -378,8 +381,7 @@ class Figure(pygame.sprite.Sprite):
             else:
                 break
         self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
-        if self.delta == 0 or pygame.sprite.spritecollideany(self, border) or \
-                len(pygame.sprite.spritecollide(self, figures, False)) > 1:
+        if self.delta == 0 or pygame.sprite.spritecollideany(self, border):
             self.go = False
 
 
@@ -529,15 +531,10 @@ f = 0
 
 def field_check():
     global updated, points
-    for i in range(len(field)):
-        line = field[i]
-        if line == [1] * 11:
-            field[i] = [0] * 11
-            updated = True
-            points += 100
-            print('breeek')
-            for i in field:
-                print(i)
+    if 0 not in field[-1]:
+        field[-1] = [0] * 11
+        updated = True
+        points += 100
     if field[0].count(1) >= 9 or field[1].count(1) >= 9:
         congratulate(-1)
 
@@ -606,7 +603,7 @@ def first_run():
         if updated:
             for i in figures:
                 i.update(4)
-        if points == 300:
+        if points == 200:
             count = 0
             congratulate(1)
         #deleter.update()
@@ -678,7 +675,7 @@ def second_run():
         if updated:
             for i in figures:
                 i.update(4)
-        if points == 600:
+        if points == 400:
             count = 0
             congratulate(2)
         board.render(screen)
