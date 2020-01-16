@@ -1,7 +1,10 @@
 import sys
 import csv
 import pygame
-from random import choice
+from random import randint, choice
+from PyQt5.QtWidgets import QApplication, QWidget, QTableWidgetItem
+from PyQt5.QtGui import QColor
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 pygame.init()
 pygame.key.set_repeat(200, 70)
@@ -15,8 +18,52 @@ points = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 results_list = []
+
+# Дизайн таблицы результатов
+class Ui_Form(object):
+    def setupUi(self, Form):
+        Form.setObjectName("Form")
+        Form.resize(650, 433)
+        self.tableWidget = QtWidgets.QTableWidget(Form)
+        self.tableWidget.setGeometry(QtCore.QRect(10, 10, 630, 413))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.tableWidget.setFont(font)
+        self.tableWidget.setObjectName("tableWidget")
+        self.tableWidget.setColumnCount(0)
+        self.tableWidget.setRowCount(0)
+
+        self.retranslateUi(Form)
+        QtCore.QMetaObject.connectSlotsByName(Form)
+
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "Таблица результатов"))
+
+
+class DataBase(QWidget, Ui_Form):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.loadTable('results.csv')
+
+    def loadTable(self, name):
+        with open('results.csv', encoding='utf8') as csvfile:
+            results_list = list(csv.reader(csvfile, delimiter=',', quotechar='"'))
+
+            self.tableWidget.setColumnCount(2)
+            self.tableWidget.setHorizontalHeaderLabels(['имя', 'результат'])
+            self.tableWidget.setRowCount(0)
+            for i, row in enumerate(results_list):
+                self.tableWidget.setRowCount(self.tableWidget.rowCount() + 1)
+                for j, elem in enumerate(row):
+                    self.tableWidget.setItem(i, j, QTableWidgetItem(elem))
+
+        self.tableWidget.resizeColumnsToContents()
+
+
 def results():
-    global name
+    global name, results_list
     with open('results.csv', encoding='utf8') as csvfile:
         results_list = list(csv.reader(csvfile, delimiter=',', quotechar='"'))
 
@@ -26,7 +73,6 @@ def results():
             csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         for i in range(len(results_list)):
             writer.writerow(results_list[i])
-
 
 
 class Exit(pygame.sprite.Sprite):
@@ -62,7 +108,6 @@ class Pause(pygame.sprite.Sprite):
         global stop
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             stop = not stop
-
 
 
 class Level(pygame.sprite.Sprite):
@@ -113,7 +158,6 @@ def terminate():
     sys.exit()
 
 
-
 def start_screen():
     global key
     intro_text = ["ИГРА ТЕТРИС",
@@ -155,68 +199,26 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 screen.fill((0, 0, 0))
-                name = get_name()
+                name = ''
                 show_levels()
         pygame.display.flip()
         clock.tick(FPS)
 
 
 class Deleter(pygame.sprite.Sprite):
-    global field, updated
     def __init__(self):
         super().__init__(all_sprites)
         self.image = pygame.Surface((40, 40))
         self.rect = pygame.Rect(0, 0, 40, 40)
         pygame.draw.rect(self.image, pygame.Color(0, 0, 0), (0, 0, 40, 40), 0)
 
-    def update(self, w=11, h=12):
-        for i in range(h):
-            for j in range(w):
-                self.rect.x = j * 40 + 10
-                self.rect.y = i * 40 + 10
-                if pygame.sprite.spritecollideany(self, alone):
-                    field[i][j] = 1
-                else:
-                    field[i][j] = 0
+    def update(self, line):
+        line = line * 40 + 10
+        self.rect.y = line
+        for i in range(11):
+            self.rect.x = i * 40 + 10
+            pygame.sprite.spritecollide(self, alone, True)
 
-
-
-    def check_field(self, w=11, h=12):
-        global points, updated
-        hor = -10
-        for i in range(h):
-            if field[i] == [1] * w:
-                points += 100
-                hor = i
-                break
-        if hor != -10:
-            for i in range(w):
-                self.rect.x = i * 40 + 10
-                self.rect.y = hor * 40 + 10
-                pygame.sprite.spritecollide(self, alone, True)
-                field[hor][i] = 0
-                updated = True
-
-        m = []
-        vert = -10
-        for i in range(w):
-            m = []
-            for j in range(h):
-                if field[j][i] == 1:
-                    m.append(1)
-            if m == [1] * h:
-                points += 100
-                vert = i
-                break
-        if vert != -10:
-            for i in range(h):
-                self.rect.x = vert * 40 + 10
-                self.rect.y = i * 40 + 10
-                if pygame.sprite.spritecollideany(self, alone):
-                    print(pygame.sprite.spritecollide(self, alone, False))
-                pygame.sprite.spritecollide(self, alone, True)
-                field[i][vert] = 0
-                updated = True
 
 
 class Alone(pygame.sprite.Sprite):
@@ -237,11 +239,12 @@ FIGURES = [SQUARE, TOWER, L, THIRD]
 
 class Figure(pygame.sprite.Sprite):
     global field
+
     def __init__(self, x, y, n, c):
         super().__init__(all_sprites)
         # self.add(figures)
-        #self.x = x
-        #self.y = y
+        # self.x = x
+        # self.y = y
         self.f = FIGURES[n]
         if self.f == L:
             self.f = L[0]
@@ -257,6 +260,7 @@ class Figure(pygame.sprite.Sprite):
         for i in range(len(self.f)):
             for j in range(len(self.f[i])):
                 if self.f[i][j] == 1:
+                    field[(y - 10) // 40 + j][(x - 10) // 40 + i] = 1
                     self.figure.add(Alone(x + 40 * i, y + 40 * j, self.clr))
                 # alone.add(Alone(x + 40 * i, y + 40 * j, clr))
 
@@ -266,21 +270,64 @@ class Figure(pygame.sprite.Sprite):
     def update(self, flag, *args):
         self.check()
         c = len(self.figure.sprites())
+        x = (self.rect.x - 10) // 40
+        y = (self.rect.y - 10) // 40
+        if flag == 4:
+            for i in self.figure.sprites():
+                if field[(i.rect.y - 10) // 40][(i.rect.x - 10) // 40] == 0:
+                    self.figure.remove(i)
+            c = len(self.figure.sprites())
+            self.rect.x = self.figure.sprites()[0].rect.x
+            self.rect.y = self.figure.sprites()[0].rect.y
+            self.check()
+            self.rect.y += self.delta
+            for i in range(c - 1, -1, -1):
+                x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
+                field[y1][x1] = 0
+                self.figure.sprites()[i].rect.y += self.delta
+                y2 = (self.figure.sprites()[i].rect.y - 10) // 40
+                field[y2][x1] = 1
         if self.go:
             if flag == 1:
-                delta = min(args[0], self.delta, 410 - self.rect.y)
-                for i in range(c):
+                delta = min(args[0], 410 - self.rect.y)
+                print(delta)
+                for i in range(c - 1, -1, -1):
+                    x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
+                    field[y1][x1] = 0
                     self.figure.sprites()[i].rect.y += delta
+                    y2 = (self.figure.sprites()[i].rect.y - 10) // 40
+                    field[y2][x1] = 1
                 self.rect.y += delta
             elif flag == 0:
                 if args[0] == 'R' and self.count == args[1] and self.rect.x <= (410 - self.rect.width):
-                    self.rect.x += 40
-                    for i in range(c):
-                        self.figure.sprites()[i].rect.x += 40
+                    r = True
+                    for i in range(y, y + self.rect.height // 40):
+                        if field[i][x + self.rect.width // 40] == 1:
+                            r = False
+                    if r:
+                        for i in range(c - 1, -1, -1):
+                            x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
+                                        self.figure.sprites()[i].rect.y - 10) // 40
+                            field[y1][x1] = 0
+                            self.figure.sprites()[i].rect.x += 40
+                            x2 = (self.figure.sprites()[i].rect.x - 10) // 40
+                            field[y1][x2] = 1
+                        self.rect.x += 40
                 elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
-                    self.rect.x -= 40
-                    for i in range(c):
-                        self.figure.sprites()[i].rect.x -= 40
+                    l = True
+                    for i in range(y, y + self.rect.height // 40):
+                        if field[i][x - 1] == 1:
+                            l = False
+                    if l:
+                        for i in range(c):
+                            x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
+                                        self.figure.sprites()[i].rect.y - 10) // 40
+                            field[y1][x1] = 0
+                            self.figure.sprites()[i].rect.x -= 40
+                            x2 = (self.figure.sprites()[i].rect.x - 10) // 40
+                            field[y1][x2] = 1
+                        self.rect.x -= 40
+
                 elif args[0] == 'U' and self.count == args[1] and self.rect.x >= 40:
                     if self.f not in SQUARE:
                         for i in range(4):
@@ -294,50 +341,53 @@ class Figure(pygame.sprite.Sprite):
                             self.f = TOWER[0] if TOWER.index(self.f) == 1 else TOWER[1]
                         elif self.f in THIRD:
                             self.f = THIRD[0] if THIRD.index(self.f) == 1 else THIRD[1]
-                        self.rect = pygame.Rect(self.rect.x, self.rect.y, 40 * len(self.f), 40 * max(list(map(lambda x: len(x), self.f))))
+                        self.rect = pygame.Rect(self.rect.x, self.rect.y, 40 * len(self.f),
+                                                40 * max(list(map(lambda x: len(x), self.f))))
                         self.figure = pygame.sprite.Group()
                         for i in range(len(self.f)):
                             for j in range(len(self.f[i])):
                                 if self.f[i][j] == 1:
                                     self.figure.add(Alone(self.rect.x + 40 * i, self.rect.y + 40 * j, self.clr))
-                elif args[0] == 'D' and self.count == args[1]:
-                    #self.check()
-                    #if self.go:
-                    for i in range(c):
+                elif args[0] == 'D' and self.count == args[1]:  # and field[x][y + self.rect.height // 40 + 1] == 0:
+                    # self.check()
+                    # if self.go:
+                    for i in range(c - 1, -1, -1):
+                        x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, \
+                                 (self.figure.sprites()[i].rect.y - 10) // 40
+                        field[y1][x1] = 0
                         self.figure.sprites()[i].rect.y += self.delta
+                        y2 = (self.figure.sprites()[i].rect.y - 10) // 40
+                        field[y2][x1] = 1
                     self.rect.y += self.delta
-
 
     def check(self):
         self.delta = 0
-        if self.go:
-            for i in range(self.rect.y, 490 - self.rect.height):
-                print(pygame.sprite.spritecollide(self, figures, False)[0].rect.y, self.rect.y + self.rect.height)
-                if len(pygame.sprite.spritecollide(self, figures, False)) != 1 and i == pygame.sprite.spritecollide(self, figures, False)[-1].rect.y:
-                    self.delta = pygame.sprite.spritecollide(self, figures, False)[0].rect.y - self.rect.y - self.rect.height
-                    break
-                else:
-                    self.delta = i
-            if self.delta > 0:
-                self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
-            elif self.delta == -2:
-                self.delta = 0
-            if pygame.sprite.spritecollideany(self, border) or len(pygame.sprite.spritecollide(self, figures, False)) != 1:
-                self.go = False
+        x = (self.rect.x - 10) // 40
+        y = (self.rect.y - 10) // 40
+        for i in range(y + self.rect.height // 40, 12):
+            if field[i][x] == 0:
+                self.delta += 40
+            else:
+                break
+        self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
+        if self.delta == 0 or pygame.sprite.spritecollideany(self, border):
+            self.go = False
+
 
 
 class Border(pygame.sprite.Sprite):
     # строго вертикальный или строго горизонтальный отрезок
-    def __init__(self,):
+    def __init__(self, ):
         super().__init__(all_sprites)
-         # нижняя стенка
-        #self.add(border)
+        # нижняя стенка
+        # self.add(border)
         self.image = pygame.Surface([400, 1])
         self.rect = pygame.Rect(10, 489, 400, 1)
 
 
 class Board:
     global field, points
+
     # создание поля
     def __init__(self, width, height, size=40):
         self.width = width
@@ -359,7 +409,7 @@ class Board:
             for j in range(self.width):
                 pygame.draw.rect(screen, (255, 255, 255),
                                  [self.left + self.cell_size * j, self.top + self.cell_size * i,
-                                                           self.cell_size, self.cell_size], 2)
+                                  self.cell_size, self.cell_size], 2)
 
 
 class Results(pygame.sprite.Sprite):
@@ -374,50 +424,9 @@ class Results(pygame.sprite.Sprite):
 
     def update(self, *args):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
-            screen.fill((0, 0, 0))
-            pygame.draw.rect(screen, (255, 255, 255), [50, 30, 100, 40], 2)
-            pygame.draw.rect(screen, (255, 255, 255), [150, 30, 100, 40], 2)
-            pygame.draw.rect(screen, (255, 255, 255), [250, 30, 100, 40], 2)
-            font = pygame.font.Font(None, 20)
-            text = font.render('имя', 1, (255, 255, 100))
-            screen.blit(text, (155, 35))
-            text = font.render('баллы', 1, (255, 255, 100))
-            screen.blit(text, (255, 35))
-            with open('results.csv', encoding='utf8') as csvfile:
-                results_list = list(csv.reader(csvfile, delimiter=',', quotechar='"'))
-            for i, elem in enumerate(results_list):
-                pygame.draw.rect(screen, (255, 255, 255), [50, (i + 1) * 40 + 30, 100, 40], 2)
-                pygame.draw.rect(screen, (255, 255, 255), [150, (i + 1) * 40 + 30, 100, 40], 2)
-                pygame.draw.rect(screen, (255, 255, 255), [250, (i + 1) * 40 + 30, 100, 40], 2)
-
-                text = font.render(f'{i}', 1, (255, 255, 100))
-                screen.blit(text, (55, (1 + i) * 40 + 15))
-                text = font.render(f'{elem[0]}', 1, (255, 255, 100))
-                screen.blit(text, (155, (1 + i) * 40 + 15))
-                text = font.render(f'{elem[1]}', 1, (255, 255, 100))
-                screen.blit(text, (255, (1 + i) * 40 + 15))
-
-
-def show_levels():
-    print(name)
-    screen.fill((0, 0, 0))
-    levels.draw(screen)
-    font = pygame.font.Font(None, 50)
-    text = font.render('Выберете уровень', 1, (255, 255, 100))
-    screen.blit(text, (30, 10))
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT or \
-                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                terminate()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                exit_btn.update(event)
-                levels.update(event)
-                res.update(event)
-        exit_btn.draw(screen)
-        res.draw(screen)
-        pygame.display.flip()
-        clock.tick(FPS)
+            app = QApplication(sys.argv)
+            base = DataBase()
+            base.show()
 
 
 def get_name():
@@ -456,7 +465,6 @@ def get_name():
         t = font.render('Введите имя', 1, (255, 255, 100))
         screen.blit(t, (100, 100))
 
-
         # Render the current text.
         txt_surface = font.render(text, True, color)
         # Resize the box if the text is too long.
@@ -471,12 +479,62 @@ def get_name():
 
 
 
+def show_levels():
+    global name
+    screen.fill((0, 0, 0))
+    levels.draw(screen)
+    font = pygame.font.Font(None, 50)
+    text = font.render('Выберете уровень', 1, (255, 255, 100))
+    screen.blit(text, (30, 10))
+    text = font.render('Ввести имя', 1, (255, 255, 100))
+    screen.blit(text, (100, 425))
+    input_box = pygame.Rect(100, 400, 300, 60)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                terminate()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                exit_btn.update(event)
+                levels.update(event)
+                res.update(event)
+                if input_box.collidepoint(event.pos):
+                    name = get_name()
+        screen.fill((0, 0, 0))
+        exit_btn.draw(screen)
+        res.draw(screen)
+        levels.draw(screen)
+        text = font.render('Ввести имя', 1, (255, 255, 100))
+        screen.blit(text, (100, 425))
+        font = pygame.font.Font(None, 50)
+        text = font.render('Выберете уровень', 1, (255, 255, 100))
+        screen.blit(text, (30, 10))
+        pygame.draw.rect(screen, (255, 255, 100), input_box, 2)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 v = 150
 f = 0
+
+def field_check():
+    global updated, points
+    for i in range(len(field)):
+        line = field[i]
+        if line == [1] * 11:
+            field[i] = [0] * 11
+            #deleter.update(i)
+            updated = True
+            points += 100
+    if field[0].count(1) >= 9 or field[1].count(1) >= 9:
+        congratulate(-1)
 
 # первый уровень
 def first_run():
     new_game()
+    print(name)
     global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
     board.render(screen)
 
@@ -495,6 +553,8 @@ def first_run():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 exit_btn.update(event)
                 stop_btn.update(event)
+                for i in field:
+                    print(i)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
                 for i in figures:
                     i.update(0, 'R', count)
@@ -517,7 +577,7 @@ def first_run():
                 print(i)
             for i in figures:
                 i.update(1, y)
-            #figures.update(1, y)
+            # figures.update(1, y)
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 30)
         text = font.render('Уровень 1', 1, (255, 255, 100))
@@ -532,11 +592,15 @@ def first_run():
         # figures.draw(screen)
         for i in figures:
             i.draw()
+        field_check()
+        if updated:
+            for i in figures:
+                i.update(4)
         if points == 300:
             count = 0
             congratulate(1)
-        deleter.update()
-        del_.check_field()
+        #deleter.update()
+        #del_.check_field()
         board.render(screen)
         pygame.display.flip()
         clock.tick(FPS)
@@ -585,7 +649,7 @@ def second_run():
                 print(i)
             for i in figures:
                 i.update(1, y)
-            #figures.update(1, y)
+            # figures.update(1, y)
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 30)
         text = font.render('Уровень 2', 1, (255, 255, 100))
@@ -600,14 +664,17 @@ def second_run():
         # figures.draw(screen)
         for i in figures:
             i.draw()
+        field_check()
+        if updated:
+            for i in figures:
+                i.update(4)
         if points == 600:
             count = 0
             congratulate(2)
-        deleter.update()
-        del_.check_field()
         board.render(screen)
         pygame.display.flip()
         clock.tick(FPS + 50)
+
 
 def third_run():
     new_game()
@@ -670,16 +737,19 @@ def third_run():
         # figures.draw(screen)
         for i in figures:
             i.draw()
+        field_check()
+        if updated:
+            for i in figures:
+                i.update(4)
         if points == 900:
             congratulate(10)
-        deleter.update()
-        del_.check_field()
         board.render(screen)
         pygame.display.flip()
         clock.tick(FPS + 70)
 
 
 screen_rect = (0, 0, WIDTH, HEIGHT)
+
 
 class Particle(pygame.sprite.Sprite):
     # сгенерируем частицы разного размера
@@ -722,7 +792,6 @@ def create_particles(position):
         Particle(position, choice(numbers), choice(numbers))
 
 
-
 def congratulate(n):
     screen.fill((0, 0, 0))
     running = True
@@ -745,7 +814,16 @@ def congratulate(n):
         stars.update()
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 50)
-        if n == 10:
+        if n == -1:
+            t = font.render('К сожалению вы проиграли', 1, (255, 255, 100))
+            screen.blit(t, (100, 100))
+            t = font.render(f'Вы набрали {points} очков', 1, (255, 255, 100))
+            screen.blit(t, (100, 200))
+            for i in range(len(results_list)):
+                k = results_list[i]
+                if name in k:
+                    results_list[i] = name, points
+        elif n == 10:
             t = font.render('Поздравляем с победой!', 1, (255, 255, 100))
         else:
             t = font.render(f'Вы прошли уровень {n}', 1, (255, 255, 100))
@@ -757,6 +835,7 @@ def congratulate(n):
         pygame.display.flip()
         clock.tick(50)
 
+
 # все спрайты
 all_sprites = pygame.sprite.Group()
 # все уровни
@@ -766,6 +845,8 @@ stars = pygame.sprite.Group()
 level1 = Level(30, 80, 1)
 level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
+
+
 def new_game():
     global points, field, figures, stop
     stop = False
@@ -782,6 +863,7 @@ def new_game():
     deleter.add(del_)
     all_sprites.add(exit)
 
+
 # Добавление всех спрайтов
 
 
@@ -794,8 +876,8 @@ levels.add(level2)
 all_sprites.add(level3)
 levels.add(level3)
 name = ''
-#MYEVENT = 30
-#pygame.time.set_timer(MYEVENT, 14940)
+# MYEVENT = 30
+# pygame.time.set_timer(MYEVENT, 14940)
 # все фигуры
 figures = []
 alone = pygame.sprite.Group()
@@ -819,7 +901,7 @@ deleter.add(del_)
 all_sprites.add(exit)
 # Музыка
 pygame.mixer.music.load('fon.mp3')
-# pygame.mixer.music.play()
+pygame.mixer.music.play()
 running = True
 start_screen()
 
