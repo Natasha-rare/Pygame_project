@@ -272,7 +272,6 @@ class Figure(pygame.sprite.Sprite):
             if flag == 1:
                 delta = min(args[0], 410 - self.rect.y)
                 print(delta)
-                #field[y][x] = 0
                 for i in range(c - 1, -1, -1):
                     x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
                     print(x1, y1)
@@ -283,27 +282,36 @@ class Figure(pygame.sprite.Sprite):
                     field[y2][x1] = 1
                 self.rect.y += delta
             elif flag == 0:
-                if args[0] == 'R' and self.count == args[1] and self.rect.x <= (410 - self.rect.width) \
-                        and field[x + self.rect.width // 40 + 1][y] == 0:
-                    for i in range(c - 1, -1, -1):
-                        x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
-                                    self.figure.sprites()[i].rect.y - 10) // 40
-                        print(x1, y1)
-                        field[y1][x1] = 0
-                        self.figure.sprites()[i].rect.x += 40
-                        x2 = (self.figure.sprites()[i].rect.x - 10) // 40
-                        field[y1][x2] = 1
-                    self.rect.x += 40
+                if args[0] == 'R' and self.count == args[1] and self.rect.x <= (410 - self.rect.width):
+                    r = True
+                    for i in range(y, y + self.rect.height // 40):
+                        if field[i][x + self.rect.width // 40] == 1:
+                            r = False
+                    if r:
+                        for i in range(c - 1, -1, -1):
+                            x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
+                                        self.figure.sprites()[i].rect.y - 10) // 40
+                            print(x1, y1)
+                            field[y1][x1] = 0
+                            self.figure.sprites()[i].rect.x += 40
+                            x2 = (self.figure.sprites()[i].rect.x - 10) // 40
+                            field[y1][x2] = 1
+                        self.rect.x += 40
                 elif args[0] == 'L' and self.count == args[1] and self.rect.x >= 40:
-                    for i in range(c - 1, -1, -1):
-                        x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
-                                    self.figure.sprites()[i].rect.y - 10) // 40
-                        print(x1, y1)
-                        field[y1][x1] = 0
-                        self.figure.sprites()[i].rect.x -= 40
-                        x2 = (self.figure.sprites()[i].rect.x - 10) // 40
-                        field[y1][x2] = 1
-                    self.rect.x -= 40
+                    l = True
+                    for i in range(y, y + self.rect.height // 40):
+                        if field[i][x - 1] == 1:
+                            l = False
+                    if l:
+                        for i in range(c):
+                            x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
+                                        self.figure.sprites()[i].rect.y - 10) // 40
+                            print(x1, y1)
+                            field[y1][x1] = 0
+                            self.figure.sprites()[i].rect.x -= 40
+                            x2 = (self.figure.sprites()[i].rect.x - 10) // 40
+                            field[y1][x2] = 1
+                        self.rect.x -= 40
 
                 elif args[0] == 'U' and self.count == args[1] and self.rect.x >= 40:
                     if self.f not in SQUARE:
@@ -329,8 +337,9 @@ class Figure(pygame.sprite.Sprite):
                     # self.check()
                     # if self.go:
                     for i in range(c - 1, -1, -1):
-                        x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (
-                                    self.figure.sprites()[i].rect.y - 10) // 40
+                        x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, \
+                                 (self.figure.sprites()[i].rect.y - 10) // 40
+
                         print(x1, y1)
                         field[y1][x1] = 0
                         self.figure.sprites()[i].rect.y += self.delta
@@ -343,20 +352,18 @@ class Figure(pygame.sprite.Sprite):
         self.delta = 0
         x = (self.rect.x - 10) // 40
         y = (self.rect.y - 10) // 40
-        b = False
-        print('aaa', x, y)
-        for i in range(y, 11):
-            if field[x][i] == 0:
+        for i in range(y + self.rect.height // 40, 12):
+            print('coords', x, i)
+            if field[i][x] == 0:
                 self.delta += 40
             else:
-                b = True
                 break
         if updated:
             self.rect.y += self.delta
-        print(b)
         self.delta = min(40, self.delta, 490 - self.rect.y - self.rect.height)
         if self.delta == 0 or pygame.sprite.spritecollideany(self, border):
             self.go = False
+
 
 
 class Border(pygame.sprite.Sprite):
