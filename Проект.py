@@ -1,9 +1,8 @@
 import sys
 import csv
 import pygame
-from random import randint, choice
+from random import choice
 from PyQt5.QtWidgets import QApplication, QWidget, QTableWidgetItem
-from PyQt5.QtGui import QColor
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 pygame.init()
@@ -18,6 +17,7 @@ points = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 results_list = []
+
 
 # Дизайн таблицы результатов
 class Ui_Form(object):
@@ -41,7 +41,7 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Таблица результатов"))
 
 
-class DataBase(QWidget, Ui_Form):
+class Results_output(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -62,6 +62,7 @@ class DataBase(QWidget, Ui_Form):
         self.tableWidget.resizeColumnsToContents()
 
 
+# добавление текущего результата
 def results():
     global name, results_list
     with open('results.csv', encoding='utf8') as csvfile:
@@ -75,6 +76,7 @@ def results():
             writer.writerow(results_list[i])
 
 
+# Спрайт выхода из игры (на начальный экран)
 class Exit(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(all_sprites)
@@ -92,24 +94,37 @@ class Exit(pygame.sprite.Sprite):
             results()
             start_screen()
 
-
+# Спрайт паузы
 class Pause(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(all_sprites)
         self.add(stop_btn)
         self.image = pygame.Surface((60, 40))
         self.rect = pygame.Rect(580, 400, 60, 50)
-        font = pygame.font.Font(None, 28)
+        font = pygame.font.Font(None, 24)
         text = font.render('STOP', 1, (255, 255, 155))
-        pygame.draw.rect(self.image, pygame.Color(11, 255, 155), (0, 0, 60, 40), 5)
-        self.image.blit(text, (7, 10))
+        self.image.blit(text, (6, 10))
+        pygame.draw.rect(self.image, pygame.Color(11, 255, 155), (0, 0, 60, 40), 3)
 
     def update(self, *args):
         global stop
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             stop = not stop
+            if stop is True:
+                pygame.draw.rect(self.image, pygame.Color(0, 0, 0), (0, 0, 60, 40))
+                font = pygame.font.Font(None, 24)
+                text = font.render('START', 1, (255, 255, 155))
+                self.image.blit(text, (6, 10))
+                pygame.draw.rect(self.image, pygame.Color(11, 255, 155), (0, 0, 60, 40), 3)
+            else:
+                pygame.draw.rect(self.image, pygame.Color(0, 0, 0), (0, 0, 60, 40))
+                font = pygame.font.Font(None, 24)
+                text = font.render('STOP', 1, (255, 255, 155))
+                self.image.blit(text, (6, 10))
+                pygame.draw.rect(self.image, pygame.Color(11, 255, 155), (0, 0, 60, 40), 3)
 
 
+# Спрайт уровня
 class Level(pygame.sprite.Sprite):
     def __init__(self, x, y, n):
         super().__init__(all_sprites)
@@ -138,6 +153,7 @@ class Level(pygame.sprite.Sprite):
                 third_run()
 
 
+# загрузка изображения
 def load_image(name, color_key=None):
     try:
         image = pygame.image.load(name)
@@ -153,11 +169,13 @@ def load_image(name, color_key=None):
     return image
 
 
+#завершение работы игры
 def terminate():
     pygame.quit()
     sys.exit()
 
 
+#Заставка с правилами игры
 def start_screen():
     global key
     intro_text = ["ИГРА ТЕТРИС",
@@ -172,7 +190,7 @@ def start_screen():
                   "стелочек на клавиатуре, а так же поворачивать фигуру ",
                   "по часовой стрелке при нажатии на стрелку вверх",
                   "(со второго уровня)",
-                  "В игре накапливаются очки за каждый собранный ряд. ",
+                  "В игре накапливаются очки за каждый собранный нижний ряд. ",
                   "Чтобы начать игры нажмите на экран или любую клавишу.",
                   "Чтобы выйти из игры нажмите на крестик или на клавишу ESC",
                   "Желаю удачи ^.^"]
@@ -205,22 +223,7 @@ def start_screen():
         clock.tick(FPS)
 
 
-class Deleter(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__(all_sprites)
-        self.image = pygame.Surface((40, 40))
-        self.rect = pygame.Rect(0, 0, 40, 40)
-        pygame.draw.rect(self.image, pygame.Color(0, 0, 0), (0, 0, 40, 40), 0)
-
-    def update(self, line):
-        line = line * 40 + 10
-        self.rect.y = line
-        for i in range(11):
-            self.rect.x = i * 40 + 10
-            pygame.sprite.spritecollide(self, alone, True)
-
-
-
+# Одиночный спрайт. Используется при создании фигур
 class Alone(pygame.sprite.Sprite):
     def __init__(self, x, y, color):
         super().__init__(all_sprites)
@@ -242,9 +245,6 @@ class Figure(pygame.sprite.Sprite):
 
     def __init__(self, x, y, n, c):
         super().__init__(all_sprites)
-        # self.add(figures)
-        # self.x = x
-        # self.y = y
         self.f = FIGURES[n]
         if self.f == L:
             self.f = L[0]
@@ -295,7 +295,6 @@ class Figure(pygame.sprite.Sprite):
         if self.go:
             if flag == 1:
                 delta = min(args[0], 410 - self.rect.y)
-                print(delta)
                 for i in range(c - 1, -1, -1):
                     x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, (self.figure.sprites()[i].rect.y - 10) // 40
                     field[y1][x1] = 0
@@ -360,8 +359,6 @@ class Figure(pygame.sprite.Sprite):
                                         field[y + j][x + i] = 1
                                         self.figure.add(Alone(self.rect.x + 40 * i, self.rect.y + 40 * j, self.clr))
                 elif args[0] == 'D' and self.count == args[1]:  # and field[x][y + self.rect.height // 40 + 1] == 0:
-                    # self.check()
-                    # if self.go:
                     for i in range(c - 1, -1, -1):
                         x1, y1 = (self.figure.sprites()[i].rect.x - 10) // 40, \
                                  (self.figure.sprites()[i].rect.y - 10) // 40
@@ -385,7 +382,7 @@ class Figure(pygame.sprite.Sprite):
             self.go = False
 
 
-
+# Нижняя граница
 class Border(pygame.sprite.Sprite):
     # строго вертикальный или строго горизонтальный отрезок
     def __init__(self, ):
@@ -396,6 +393,7 @@ class Border(pygame.sprite.Sprite):
         self.rect = pygame.Rect(10, 489, 400, 1)
 
 
+# Поле
 class Board:
     global field, points
 
@@ -423,6 +421,7 @@ class Board:
                                   self.cell_size, self.cell_size], 2)
 
 
+# Работа с результатами. Их вывод
 class Results(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(all_sprites)
@@ -436,10 +435,11 @@ class Results(pygame.sprite.Sprite):
     def update(self, *args):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             app = QApplication(sys.argv)
-            base = DataBase()
+            base = Results_output()
             base.show()
 
 
+# Запрос имени пользователя с помощью перехода на отдельное окно
 def get_name():
     screen.fill((30, 30, 30))
     text = ''
@@ -482,13 +482,14 @@ def get_name():
         width = max(200, txt_surface.get_width() + 10)
         input_box.w = width
         # Blit the text.
-        screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+        screen.blit(txt_surface, (input_box.x + 5, input_box.y + 3))
         # Blit the input_box rect.
         pygame.draw.rect(screen, color, input_box, 2)
         pygame.display.flip()
         clock.tick(30)
 
 
+# Следующий за заставкой экран с уровнями
 def show_levels():
     global name
     screen.fill((0, 0, 0))
@@ -529,6 +530,8 @@ def show_levels():
 v = 150
 f = 0
 
+
+# Проверка заполненности поля
 def field_check():
     global updated, points
     if 0 not in field[-1]:
@@ -538,10 +541,10 @@ def field_check():
     if field[0].count(1) >= 9 or field[1].count(1) >= 9:
         congratulate(-1)
 
+
 # первый уровень
 def first_run():
     new_game()
-    print(name)
     global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
     board.render(screen)
 
@@ -571,7 +574,7 @@ def first_run():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
                 for i in figures:
                     i.update(0, 'D', count)
-
+        # Если не была нажата клавиша стоп
         if not stop:
             if figures[-1].go is False or updated:
                 count += 1
@@ -580,11 +583,8 @@ def first_run():
                 f = choice(range(11))
                 updated = False
             y = v / FPS
-            for i in field:
-                print(i)
             for i in figures:
                 i.update(1, y)
-            # figures.update(1, y)
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 30)
         text = font.render('Уровень 1', 1, (255, 255, 100))
@@ -596,7 +596,6 @@ def first_run():
         border.draw(screen)
         exit_btn.draw(screen)
         stop_btn.draw(screen)
-        # figures.draw(screen)
         for i in figures:
             i.draw()
         field_check()
@@ -606,13 +605,12 @@ def first_run():
         if points == 200:
             count = 0
             congratulate(1)
-        #deleter.update()
-        #del_.check_field()
         board.render(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
 
+# Второй уровень
 def second_run():
     new_game()
     global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
@@ -644,6 +642,7 @@ def second_run():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 for i in figures:
                     i.update(0, 'U', count)
+        # Если не была нажата клавиша стоп
         if not stop:
             if figures[-1].go is False or updated:
                 count += 1
@@ -652,11 +651,8 @@ def second_run():
                 f = choice(range(11))
                 updated = False
             y = (v * 2) / FPS
-            for i in field:
-                print(i)
             for i in figures:
                 i.update(1, y)
-            # figures.update(1, y)
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 30)
         text = font.render('Уровень 2', 1, (255, 255, 100))
@@ -683,6 +679,7 @@ def second_run():
         clock.tick(FPS + 50)
 
 
+# Третий уровень
 def third_run():
     new_game()
     global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
@@ -715,7 +712,7 @@ def third_run():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 for i in figures:
                     i.update(0, 'U', count)
-
+        # Если не была нажата клавиша стоп
         if not stop:
             if figures[-1].go is False or updated:
                 count += 1
@@ -725,8 +722,6 @@ def third_run():
                 f = choice(range(11))
                 updated = False
             y = (v * 3) / FPS
-            for i in field:
-                print(i)
             for i in figures:
                 i.update(1, y)
             # figures.update(1, y)
@@ -741,7 +736,6 @@ def third_run():
         border.draw(screen)
         exit_btn.draw(screen)
         stop_btn.draw(screen)
-        # figures.draw(screen)
         for i in figures:
             i.draw()
         field_check()
@@ -755,9 +749,7 @@ def third_run():
         clock.tick(FPS + 70)
 
 
-screen_rect = (0, 0, WIDTH, HEIGHT)
-
-
+# Украшение -- звездочки
 class Particle(pygame.sprite.Sprite):
     # сгенерируем частицы разного размера
     fire = [load_image("star.png")]
@@ -799,6 +791,7 @@ def create_particles(position):
         Particle(position, choice(numbers), choice(numbers))
 
 
+# Поздравление с победой/ переходом на следующий уровень
 def congratulate(n):
     screen.fill((0, 0, 0))
     running = True
@@ -849,6 +842,7 @@ def congratulate(n):
 all_sprites = pygame.sprite.Group()
 # все уровни
 levels = pygame.sprite.Group()
+# Звездочки
 stars = pygame.sprite.Group()
 # Создание уровней
 level1 = Level(30, 80, 1)
@@ -856,6 +850,7 @@ level2 = Level(180, 80, 2)
 level3 = Level(330, 80, 3)
 
 
+# Начало нового уровня
 def new_game():
     global points, field, figures, stop
     stop = False
@@ -863,19 +858,14 @@ def new_game():
     figures = []
     # Кнопка выхода
     exit_btn = pygame.sprite.Group()
-    deleter = pygame.sprite.Group()
     exit = Exit()
     exit_btn.add(exit)
     field = [[0] * 11 for _ in range(12)]
-    # points = 0
-    del_ = Deleter()
-    deleter.add(del_)
     all_sprites.add(exit)
 
 
+screen_rect = (0, 0, WIDTH, HEIGHT)
 # Добавление всех спрайтов
-
-
 all_sprites.add(level1)
 levels.add(level1)
 
@@ -884,9 +874,6 @@ levels.add(level2)
 
 all_sprites.add(level3)
 levels.add(level3)
-name = ''
-# MYEVENT = 30
-# pygame.time.set_timer(MYEVENT, 14940)
 # все фигуры
 figures = []
 alone = pygame.sprite.Group()
@@ -905,8 +892,6 @@ stop_btn.add(stop)
 stop = False
 field = [[0] * 12 for _ in range(11)]
 board = Board(11, 12)
-del_ = Deleter()
-deleter.add(del_)
 all_sprites.add(exit)
 # Музыка
 pygame.mixer.music.load('fon.mp3')
