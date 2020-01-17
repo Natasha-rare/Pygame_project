@@ -26,4 +26,4 @@ from random import choice - рандомная генерация цветов
 from PyQt5.QtWidgets import QApplication, QWidget, QTableWidgetItem
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-В папке screen вы можете найти скриншоты моей программы
+В папке screen вы можете найти скриншоты моей программы. Там же лежит небольшое видео процесса игры
