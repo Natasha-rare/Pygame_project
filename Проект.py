@@ -12,7 +12,7 @@ WIDTH = 700
 HEIGHT = 600
 STEP = 10
 
-colors = ['blue', 'red', 'green', 'yellow', 'orange']
+colors = ['blue', 'red', 'green', 'yellow', 'orange', 'pink', 'purple']
 points = 0
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -23,9 +23,9 @@ results_list = []
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(650, 433)
+        Form.resize(700, 600)
         self.tableWidget = QtWidgets.QTableWidget(Form)
-        self.tableWidget.setGeometry(QtCore.QRect(10, 10, 630, 413))
+        self.tableWidget.setGeometry(QtCore.QRect(20, 20, 680, 580))
         font = QtGui.QFont()
         font.setPointSize(16)
         self.tableWidget.setFont(font)
@@ -264,7 +264,6 @@ class Figure(pygame.sprite.Sprite):
                         field[(y - 10) // 40 + j][(x - 10) // 40 + i] = 1
                         self.figure.add(Alone(x + 40 * i, y + 40 * j, self.clr))
                 except IndexError:
-                    print('adadadaa')
                     break
                 # alone.add(Alone(x + 40 * i, y + 40 * j, clr))
 
@@ -563,8 +562,6 @@ def first_run():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 exit_btn.update(event)
                 stop_btn.update(event)
-                for i in field:
-                    print(i)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
                 for i in figures:
                     i.update(0, 'R', count)
@@ -895,8 +892,9 @@ board = Board(11, 12)
 all_sprites.add(exit)
 # Музыка
 pygame.mixer.music.load('fon.mp3')
-pygame.mixer.music.play()
+#pygame.mixer.music.play()
 running = True
+# Начинаем игру
 start_screen()
 
 terminate()
