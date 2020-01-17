@@ -92,7 +92,10 @@ class Exit(pygame.sprite.Sprite):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(args[0].pos):
             screen.fill((0, 0, 0))
             results()
-            start_screen()
+            if start:
+                start_screen()
+            else:
+                show_levels()
 
 # Спрайт паузы
 class Pause(pygame.sprite.Sprite):
@@ -175,9 +178,10 @@ def terminate():
     sys.exit()
 
 
+start = False
 #Заставка с правилами игры
 def start_screen():
-    global key
+    global key, start
     intro_text = ["ИГРА ТЕТРИС",
                   "Добро пожаловать в игру тетрис!",
                   "Вас ждут позитив и прекрасное времяпровождение",
@@ -490,7 +494,8 @@ def get_name():
 
 # Следующий за заставкой экран с уровнями
 def show_levels():
-    global name
+    global name, start
+    start = True
     screen.fill((0, 0, 0))
     levels.draw(screen)
     font = pygame.font.Font(None, 50)
@@ -542,9 +547,11 @@ def field_check():
 
 
 # первый уровень
-def first_run():
-    new_game()
-    global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
+def first_run(cont=False):
+    if not cont:
+        new_game()
+    global key, f, count, figures, board, exit_btn, updated, stop, start
+    start = False
     board.render(screen)
 
     if count == 0:
@@ -599,7 +606,7 @@ def first_run():
         if updated:
             for i in figures:
                 i.update(4)
-        if points == 200:
+        if points == 200 and not cont:
             count = 0
             congratulate(1)
         board.render(screen)
@@ -608,9 +615,11 @@ def first_run():
 
 
 # Второй уровень
-def second_run():
-    new_game()
-    global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
+def second_run(cont=False):
+    if not cont:
+        new_game()
+    global key, f, count, figures, board, exit_btn, updated, stop, start
+    start = False
     board.render(screen)
     if count == 0:
         count += 1
@@ -668,7 +677,7 @@ def second_run():
         if updated:
             for i in figures:
                 i.update(4)
-        if points == 400:
+        if points == 400 and not cont:
             count = 0
             congratulate(2)
         board.render(screen)
@@ -677,9 +686,11 @@ def second_run():
 
 
 # Третий уровень
-def third_run():
-    new_game()
-    global key, f, count, figures, board, exit_btn, deleter, del_, updated, stop
+def third_run(cont=False):
+    if not cont:
+        new_game()
+    global key, f, count, figures, board, exit_btn, updated, stop, start
+    start = False
     board.render(screen)
     if count == 0:
         count += 1
@@ -739,7 +750,7 @@ def third_run():
         if updated:
             for i in figures:
                 i.update(4)
-        if points == 900:
+        if points == 600 and not cont:
             congratulate(10)
         board.render(screen)
         pygame.display.flip()
@@ -802,12 +813,20 @@ def congratulate(n):
                 # создаём частицы по щелчку мыши
                 create_particles(pygame.mouse.get_pos())
             if event.type == pygame.KEYDOWN:
-                if n == 2:
-                    third_run()
-                elif n == 1:
-                    second_run()
+                if event.key == pygame.K_SPACE:
+                    if n == 2:
+                        second_run(True)
+                    elif n == 1:
+                        first_run(True)
+                    else:
+                        third_run(True)
                 else:
-                    start_screen()
+                    if n == 2:
+                        third_run()
+                    elif n == 1:
+                        second_run()
+                    else:
+                        start_screen()
         stars.update()
         screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 50)
@@ -828,6 +847,8 @@ def congratulate(n):
             screen.blit(t, (100, 100))
 
         font = pygame.font.Font(None, 20)
+        t = font.render('Нажмите на клавишу enter, если вы хотите остаться на этом уровне', 1, (255, 255, 100))
+        screen.blit(t, (100, 380))
         t = font.render('Нажмите на клавиатуру для продолжения', 1, (255, 255, 100))
         screen.blit(t, (100, 400))
         stars.draw(screen)
