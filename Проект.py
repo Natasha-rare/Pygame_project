@@ -7,7 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 pygame.init()
 pygame.key.set_repeat(200, 70)
-FPS = 60
+FPS = 40
 WIDTH = 700
 HEIGHT = 600
 STEP = 10
@@ -440,6 +440,7 @@ class Results(pygame.sprite.Sprite):
             app = QApplication(sys.argv)
             base = Results_output()
             base.show()
+            sys.exit(show_levels())
 
 
 # Запрос имени пользователя с помощью перехода на отдельное окно
@@ -913,7 +914,7 @@ board = Board(11, 12)
 all_sprites.add(exit)
 # Музыка
 pygame.mixer.music.load('fon.mp3')
-#pygame.mixer.music.play()
+pygame.mixer.music.play()
 running = True
 # Начинаем игру
 start_screen()
