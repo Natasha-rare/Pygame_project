@@ -7,7 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 pygame.init()
 pygame.key.set_repeat(200, 70)
-FPS = 40
+FPS = 60
 WIDTH = 700
 HEIGHT = 600
 STEP = 10
@@ -67,9 +67,13 @@ def results():
     global name, results_list
     with open('results.csv', encoding='utf8') as csvfile:
         results_list = list(csv.reader(csvfile, delimiter=',', quotechar='"'))
-
-    results_list.append([name, points])
-    with open('results.csv', 'w') as csvfile:
+    if name != '':
+        results_list.append([name, points])
+    for i in range(len(results_list)):
+        k = results_list[i]
+        if name in k and name != '':
+            results_list[i] = name, points
+    with open('results.csv', mode='w', encoding='utf8') as csvfile:
         writer = csv.writer(
             csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         for i in range(len(results_list)):
@@ -532,7 +536,7 @@ def show_levels():
         clock.tick(FPS)
 
 
-v = 150
+v = 100
 f = 0
 
 
@@ -657,7 +661,7 @@ def second_run(cont=False):
                 all_sprites.add(Figure(10 + f * 40, 10, f % 3, count))
                 f = choice(range(11))
                 updated = False
-            y = (v * 2) / FPS
+            y = (v + 10) / FPS
             for i in figures:
                 i.update(1, y)
         screen.fill((0, 0, 0))
@@ -730,7 +734,7 @@ def third_run(cont=False):
                 all_sprites.add(Figure(10 + f * 40, 10, m, count))
                 f = choice(range(11))
                 updated = False
-            y = (v * 3) / FPS
+            y = (v + 20) / FPS
             for i in figures:
                 i.update(1, y)
             # figures.update(1, y)
